@@ -1,0 +1,2347 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="description" content="Market Basket Lynn Aisle Planner - Plan your grocery trips efficiently!" />
+<title>Market Basket Lynn — Aisle Planner</title>
+<link rel="icon" type="image/webp" href="favicon.webp" />
+<style>
+  :root {
+    --gap: 10px;
+    --bd: #e2e8f0;
+    --muted: #64748b;
+    --text: #0f172a;
+    --primary: #0f766e;        /* MB teal */
+    --primary-dark: #115e59;
+    --accent: #dc2626;         /* MB red */
+    --danger: #dc2626;
+    --success: #16a34a;
+    --bg: #f1f5f9;
+    --card: #ffffff;
+    --shadow-sm: 0 1px 2px rgba(15,23,42,0.06);
+    --shadow-md: 0 4px 12px rgba(15,23,42,0.08);
+    --radius: 10px;
+    --radius-lg: 14px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    line-height: 1.5;
+    margin: 0 auto;
+    padding: 24px 18px 60px;
+    max-width: 1000px;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1 {
+    font-size: 26px;
+    margin: 0 0 4px;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+  .page-header {
+    margin-bottom: 18px;
+  }
+  .page-header .subtitle {
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .location-picker {
+    margin-top: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: white;
+    border: 1px solid var(--bd);
+    border-radius: var(--radius);
+    padding: 6px 10px 6px 12px;
+    box-shadow: var(--shadow-sm);
+  }
+  .location-picker label {
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .location-picker select {
+    border: none;
+    background: transparent;
+    padding: 4px 6px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--primary);
+    min-height: auto;
+    cursor: pointer;
+  }
+  .location-picker select:focus { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 4px; }
+
+  .row {
+    display: flex;
+    gap: var(--gap);
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  input, button, select {
+    padding: 10px 14px;
+    border: 1px solid var(--bd);
+    border-radius: var(--radius);
+    font-size: 15px;
+    min-height: 44px;
+    font-family: inherit;
+  }
+
+  input[type="text"] {
+    flex: 1;
+    min-width: 200px;
+    background: white;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  input[type="text"]:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(15,118,110,0.15);
+  }
+
+  button {
+    background: var(--primary);
+    color: white;
+    border: 1px solid transparent;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.15s, transform 0.05s, box-shadow 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: center;
+  }
+  button:hover { background: var(--primary-dark); }
+  button:active { transform: translateY(1px); }
+
+  button.secondary {
+    background: white;
+    color: var(--text);
+    border-color: var(--bd);
+  }
+  button.secondary:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+  }
+
+  button.danger {
+    background: white;
+    color: var(--danger);
+    border-color: #fecaca;
+  }
+  button.danger:hover {
+    background: var(--danger);
+    color: white;
+    border-color: var(--danger);
+  }
+
+  button.toggle[aria-pressed="true"] {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+  }
+
+  .card {
+    background: var(--card);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    padding: 18px;
+    margin-bottom: 16px;
+    border: 1px solid var(--bd);
+  }
+
+  .controls {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .action-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .action-row .spacer { flex: 1; }
+
+  #list { margin-top: 8px; }
+
+  .aisle-group {
+    background: var(--card);
+    border: 1px solid var(--bd);
+    border-radius: var(--radius-lg);
+    margin-bottom: 12px;
+    overflow: hidden;
+    break-inside: avoid;
+  }
+  .aisle-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: linear-gradient(180deg, #f8fafc, #f1f5f9);
+    border-bottom: 1px solid var(--bd);
+  }
+  .aisle-header h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--primary);
+  }
+  .aisle-header .count {
+    font-size: 12px;
+    color: var(--muted);
+    background: white;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid var(--bd);
+  }
+  .aisle-items { padding: 6px; }
+
+  .item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: var(--radius);
+    background: white;
+    transition: background 0.12s;
+  }
+  .item + .item { margin-top: 2px; }
+  .item:hover { background: #f8fafc; }
+
+  .item-name { flex: 1; font-size: 15px; }
+
+  .editable-name { cursor: pointer; }
+  .editable-name:hover { color: var(--primary); }
+  .editable-name.is-editing { cursor: text; }
+
+  .editing-name-input {
+    width: 100%;
+    min-width: 0;
+    padding: 6px 8px;
+    font-size: 15px;
+    border: 1px solid var(--primary);
+    border-radius: 6px;
+    min-height: auto;
+  }
+
+  .item-aisle {
+    background: #ecfdf5;
+    color: var(--primary-dark);
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    border: 1px solid #d1fae5;
+  }
+  .editable-aisle { cursor: pointer; transition: background 0.15s; }
+  .editable-aisle:hover { background: #d1fae5; }
+
+  .remove-btn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 6px 8px;
+    min-height: auto;
+    border-radius: 6px;
+  }
+  .remove-btn:hover { color: var(--danger); background: #fef2f2; }
+
+  .muted { color: var(--muted); font-size: 14px; }
+
+  .status {
+    padding: 10px 14px;
+    background: #f8fafc;
+    border: 1px solid var(--bd);
+    border-radius: var(--radius);
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+  }
+  .empty-state .icon {
+    font-size: 40px;
+    margin-bottom: 8px;
+    opacity: 0.5;
+  }
+  
+  .print-only { display: none; }
+  
+  @media print {
+    body {
+      padding: 0;
+      margin: 0;
+      font-family: Arial, sans-serif;
+      font-size: 11pt;
+      line-height: 1.2;
+    }
+    
+    .no-print {
+      display: none !important;
+    }
+    
+    .print-only {
+      display: block;
+      margin-bottom: 10px;
+    }
+    
+    .print-only h1 {
+      font-size: 16pt;
+      margin: 0 0 2px 0;
+      font-weight: bold;
+    }
+    
+    .print-only #printDate {
+      font-size: 9pt;
+      color: #666;
+      margin-bottom: 10px;
+    }
+    
+    #list {
+      margin: 0;
+      padding: 0;
+    }
+    
+    .item {
+      display: flex;
+      justify-content: space-between;
+      padding: 2px 0;
+      border: none;
+      box-shadow: none;
+      background: none;
+      margin: 0;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    
+    .item-name {
+      flex: 1;
+      font-size: 11pt;
+    }
+    
+    .item-aisle {
+      background: none;
+      color: #000;
+      padding: 0;
+      margin-left: 10px;
+      font-size: 11pt;
+      font-weight: normal;
+    }
+    
+    .remove-btn {
+      display: none;
+    }
+    
+    @page {
+      margin: 0.3in;
+    }
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .fade-in { animation: fadeIn 0.25s ease-out forwards; }
+
+  #suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid var(--bd);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
+    margin-top: 4px;
+    max-height: 240px;
+    overflow-y: auto;
+    display: none;
+    z-index: 1000;
+  }
+  #suggestions > div {
+    padding: 10px 14px;
+    cursor: pointer;
+    font-size: 15px;
+  }
+  #suggestions > div:hover { background: #f1f5f9; }
+
+  .view-toggle {
+    display: inline-flex;
+    background: white;
+    border: 1px solid var(--bd);
+    border-radius: var(--radius);
+    padding: 3px;
+    margin-bottom: 12px;
+    gap: 2px;
+  }
+  .view-toggle button {
+    background: transparent;
+    color: var(--muted);
+    border: none;
+    min-height: 36px;
+    padding: 6px 14px;
+    font-size: 14px;
+    border-radius: 7px;
+  }
+  .view-toggle button.active {
+    background: var(--primary);
+    color: white;
+  }
+  .view-toggle button:not(.active):hover {
+    background: #f1f5f9;
+    color: var(--text);
+  }
+
+  .browse-panel {
+    display: none;
+    padding: 14px;
+    border: 1px solid var(--bd);
+    border-radius: var(--radius-lg);
+    background: #f8fafc;
+    margin-top: 12px;
+  }
+
+  .browse-toolbar {
+    display: flex;
+    gap: var(--gap);
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .browse-summary {
+    margin-left: auto;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .browse-list {
+    max-height: 340px;
+    overflow-y: auto;
+    border: 1px solid var(--bd);
+    border-radius: var(--radius);
+    background: white;
+  }
+
+  .browse-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .browse-item:last-child { border-bottom: none; }
+  .browse-item input[type="checkbox"] {
+    width: 18px; height: 18px;
+    min-width: auto; min-height: auto;
+    margin: 0;
+    accent-color: var(--primary);
+  }
+  .browse-item-name { flex: 1; }
+  .browse-item.disabled { background: #f8fafc; color: #94a3b8; }
+
+  .browse-empty {
+    padding: 20px;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  @media (max-width: 640px) {
+    body { padding: 16px 12px 50px; }
+    h1 { font-size: 22px; }
+    input, button, select { font-size: 14px; }
+    .action-row button { flex: 1 1 auto; }
+  }
+
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+  <div class="no-print">
+    <header class="page-header">
+      <h1>Market Basket — Aisle Planner</h1>
+      <div class="subtitle" id="locationSubtitle">Plan your shop, walk the store in order.</div>
+      <div class="location-picker">
+        <label for="locationSelect">Store:</label>
+        <select id="locationSelect">
+          <option value="lynn">Lynn #82 — 40 Federal Street</option>
+          <option value="middleton">Middleton #45 — 230 South Main Street</option>
+        </select>
+      </div>
+    </header>
+
+    <div class="card">
+      <div class="view-toggle">
+        <button id="searchModeBtn" type="button" class="active">Search / Add</button>
+        <button id="browseModeBtn" type="button">Browse / Select</button>
+      </div>
+
+      <div class="controls">
+        <div id="searchAddView" class="row" style="position: relative;">
+          <input type="text" id="itemInput" placeholder="Type an item (e.g. ketchup, oreos, yogurt)..." autocomplete="off" />
+          <button id="addBtn">Add</button>
+          <div id="suggestions"></div>
+        </div>
+
+        <div id="browseView" class="browse-panel">
+          <div class="browse-toolbar">
+            <input type="text" id="browseFilterInput" placeholder="Filter all stored items..." style="flex: 1; min-width: 220px;" />
+            <button id="selectVisibleBtn" type="button" class="secondary">Select Visible</button>
+            <button id="clearBrowseSelectionBtn" type="button" class="secondary">Clear Selection</button>
+            <button id="addSelectedBtn" type="button">Add Selected</button>
+            <div id="browseSummary" class="browse-summary">Loading items...</div>
+          </div>
+          <div id="browseItems" class="browse-list"></div>
+        </div>
+
+        <div class="action-row">
+          <button id="reverseOrderBtn" type="button" class="secondary toggle" aria-pressed="false" title="Toggle aisle sort direction">
+            <span id="reverseOrderIcon">↓</span>
+            <span id="reverseOrderLabel">Aisles: low → high</span>
+          </button>
+          <span class="spacer"></span>
+          <button id="printBtn" class="secondary">Print</button>
+          <button id="saveListBtn" class="secondary">Save</button>
+          <button id="loadListBtn" class="secondary">Load</button>
+          <button id="clearBtn" class="danger">Clear All</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="savedListsPanel" class="card hidden">
+      <h3 style="margin: 0 0 10px; font-size: 15px;">Saved Lists</h3>
+      <div id="savedListsContainer"></div>
+    </div>
+
+    <div id="status" class="status">Loading aisle data...</div>
+  </div>
+  
+  <div class="print-only">
+    <h1>Market Basket Lynn — Shopping List</h1>
+    <div id="printDate"></div>
+  </div>
+  
+  <div id="list"></div>
+  
+  <script>
+  // DOM Elements
+  const els = {
+    // Inputs
+    input: document.getElementById('itemInput'),
+    addBtn: document.getElementById('addBtn'),
+    searchModeBtn: document.getElementById('searchModeBtn'),
+    browseModeBtn: document.getElementById('browseModeBtn'),
+    searchAddView: document.getElementById('searchAddView'),
+    browseView: document.getElementById('browseView'),
+    browseFilterInput: document.getElementById('browseFilterInput'),
+    selectVisibleBtn: document.getElementById('selectVisibleBtn'),
+    clearBrowseSelectionBtn: document.getElementById('clearBrowseSelectionBtn'),
+    addSelectedBtn: document.getElementById('addSelectedBtn'),
+    locationSelect: document.getElementById('locationSelect'),
+    locationSubtitle: document.getElementById('locationSubtitle'),
+    reverseOrderBtn: document.getElementById('reverseOrderBtn'),
+    reverseOrderIcon: document.getElementById('reverseOrderIcon'),
+    reverseOrderLabel: document.getElementById('reverseOrderLabel'),
+    printBtn: document.getElementById('printBtn'),
+    saveListBtn: document.getElementById('saveListBtn'),
+    loadListBtn: document.getElementById('loadListBtn'),
+    clearBtn: document.getElementById('clearBtn'),
+    
+    // Outputs
+    list: document.getElementById('list'),
+    status: document.getElementById('status'),
+    printDate: document.getElementById('printDate'),
+    browseItems: document.getElementById('browseItems'),
+    browseSummary: document.getElementById('browseSummary'),
+    savedListsPanel: document.getElementById('savedListsPanel'),
+    savedListsContainer: document.getElementById('savedListsContainer')
+  };
+  
+  // State
+  let items = [];
+  let aisles = [];
+  let reverseAisles = false;
+  let currentInputMode = 'search';
+  let browseFilter = '';
+  let browseSelections = new Set();
+  let editingItemNameId = null;
+  let masterDbPromise = null;
+  
+  const MASTER_DB = {
+    name: 'MBAislePlannerDB',
+    version: 1,
+    store: 'masterItems',
+    migrationKey: 'mbMasterDbMigratedV1'
+  };
+  
+  // Per-location embedded aisle data — derived from each Market Basket Shoppers' Guide PDF.
+  const LYNN_EMBEDDED = [{"item":"Air Freshener","aisle":"15"},{"item":"Aluminum Foil","aisle":"14"},{"item":"Ammonia","aisle":"15"},{"item":"Applesauce","aisle":"9"},{"item":"Automotive","aisle":"13"},{"item":"Baby Food","aisle":"12"},{"item":"Baby Powder","aisle":"12"},{"item":"Bagels","aisle":"Bakery"},{"item":"Bags: Lunch-Sandwich","aisle":"14"},{"item":"Bags: Garbage-Trash","aisle":"14"},{"item":"Bakery: Fresh","aisle":"Front Corner"},{"item":"Bakery: Packaged","aisle":"18"},{"item":"Bakeware","aisle":"13"},{"item":"Baking Needs","aisle":"7"},{"item":"Barbecue Sauce","aisle":"3"},{"item":"Bath Tissue","aisle":"13"},{"item":"Batteries","aisle":"11"},{"item":"Beans: Baked","aisle":"3"},{"item":"Beans: Dry","aisle":"6"},{"item":"Bisquick","aisle":"4"},{"item":"Bleach","aisle":"15"},{"item":"Bouillon Cubes","aisle":"9"},{"item":"Bread","aisle":"18"},{"item":"Bread Crumbs","aisle":"20"},{"item":"Brooms","aisle":"15"},{"item":"Bug Spray","aisle":"13"},{"item":"Butter","aisle":"1"},{"item":"Butter Buds","aisle":"6"},{"item":"Cake Mix","aisle":"7"},{"item":"Candles: Birthday","aisle":"Bakery Case"},{"item":"Candles: Household","aisle":"15"},{"item":"Candy","aisle":"9"},{"item":"Canning Supplies","aisle":"3"},{"item":"Cat Food","aisle":"14"},{"item":"Cat Litter","aisle":"14"},{"item":"Cat Needs","aisle":"14"},{"item":"Cereal","aisle":"4"},{"item":"Charcoal","aisle":"13"},{"item":"Cheese: Grated Parmesan","aisle":"5"},{"item":"Cheese: Prepackaged","aisle":"1"},{"item":"Cheese: Specialty","aisle":"Cheese Case"},{"item":"Cheese: Fresh","aisle":"Deli/Fish"},{"item":"Cherries: Canned","aisle":"7"},{"item":"Cherries: Jar","aisle":"3"},{"item":"Chili Sauce","aisle":"3"},{"item":"Chinese Food: Canned","aisle":"8"},{"item":"Chowder: Clam-Corn-Potato","aisle":"9"},{"item":"Clams: Canned-Minced-Juice","aisle":"2"},{"item":"Coffee","aisle":"7"},{"item":"Cold Remedies","aisle":"12"},{"item":"Cookies","aisle":"18"},{"item":"Cottage Cheese","aisle":"2"},{"item":"Crackers","aisle":"18"},{"item":"Cranberry Sauce","aisle":"9"},{"item":"Croutons","aisle":"3"},{"item":"Deodorant","aisle":"11"},{"item":"Detergent: Dish","aisle":"15"},{"item":"Detergent: Dishwasher","aisle":"15"},{"item":"Detergent: Laundry","aisle":"15"},{"item":"Diapers","aisle":"12"},{"item":"Disinfectant Spray","aisle":"15"},{"item":"Dog Food","aisle":"14"},{"item":"Dog Needs","aisle":"14"},{"item":"Drain Cleaner","aisle":"15"},{"item":"Dried Fruit: Currants-Dates","aisle":"9"},{"item":"Dried Fruit: Prunes-Raisins","aisle":"9"},{"item":"Dye: Fabric","aisle":"15"},{"item":"Eggs","aisle":"2"},{"item":"Electrical Supplies","aisle":"11"},{"item":"Escargot","aisle":"2"},{"item":"Eye Care","aisle":"11"},{"item":"Facial Tissue","aisle":"13"},{"item":"Fabric Softener","aisle":"15"},{"item":"Feminine Needs","aisle":"11"},{"item":"Figs: Dry","aisle":"Produce"},{"item":"Fish: Canned","aisle":"2"},{"item":"Fish: Fresh","aisle":"Deli/Fish"},{"item":"Flour","aisle":"7"},{"item":"Food Coloring","aisle":"7"},{"item":"Freezer Wrap","aisle":"14"},{"item":"Frozen Foods","aisle":"19-20"},{"item":"Fruit: Canned","aisle":"9"},{"item":"Fruit: Fresh","aisle":"Produce"},{"item":"Gloves: Work","aisle":"15"},{"item":"Granola Bars","aisle":"4"},{"item":"Gravy","aisle":"6"},{"item":"Grits","aisle":"4"},{"item":"Ham Glaze","aisle":"3"},{"item":"Hamburger Helper","aisle":"5"},{"item":"Honey","aisle":"4"},{"item":"Household Cleaners","aisle":"15"},{"item":"Ice Cream","aisle":"Produce Corner"},{"item":"Ice Cream Cones","aisle":"Produce Corner"},{"item":"Ice Cubes","aisle":"20"},{"item":"Iced Tea Mix","aisle":"16"},{"item":"Jam & Jelly","aisle":"9"},{"item":"Jello","aisle":"7"},{"item":"Juice","aisle":"6"},{"item":"Ketchup","aisle":"3"},{"item":"Kitchen Utensils","aisle":"9"},{"item":"Kool Aid","aisle":"16"},{"item":"Laundry Detergent","aisle":"15"},{"item":"Laxative","aisle":"12"},{"item":"Lightbulbs","aisle":"11"},{"item":"Mac & Cheese: Packaged","aisle":"5"},{"item":"Magazines","aisle":"Registers"},{"item":"Mayonnaise","aisle":"3"},{"item":"Meat: Canned","aisle":"2"},{"item":"Meat: Fresh","aisle":"Meat"},{"item":"Mexican Food","aisle":"3"},{"item":"Milk: Fluid","aisle":"1"},{"item":"Milk: Evaporated-Powdered","aisle":"7"},{"item":"Molasses","aisle":"4"},{"item":"Mops","aisle":"15"},{"item":"Mouthwash","aisle":"11"},{"item":"Mushrooms: Canned","aisle":"6"},{"item":"Mustard","aisle":"3"},{"item":"Napkins","aisle":"13"},{"item":"Noodles","aisle":"5"},{"item":"Nuts: Baking","aisle":"7"},{"item":"Nuts: Snack","aisle":"10"},{"item":"Nuts: Peanuts in shell","aisle":"Produce"},{"item":"Oil: Canola-Cooking-Corn","aisle":"3"},{"item":"Oil: Olive-Vegetable","aisle":"3"},{"item":"Oil: Motor","aisle":"13"},{"item":"Olives","aisle":"3"},{"item":"Pancake Mix","aisle":"4"},{"item":"Paper: Cups-Plates","aisle":"13"},{"item":"Paper Towels","aisle":"13"},{"item":"Pasta","aisle":"5"},{"item":"Peanut Butter","aisle":"9"},{"item":"Pie Filling","aisle":"7"},{"item":"Pizza: Fresh","aisle":"Market's Kitchen"},{"item":"Plasticware","aisle":"14"},{"item":"Pop Tarts","aisle":"4"},{"item":"Popping Corn","aisle":"10"},{"item":"Potato Chips","aisle":"10"},{"item":"Potatoes: Fresh","aisle":"Produce"},{"item":"Potatoes: Canned-Instant","aisle":"6"},{"item":"Pudding Mix","aisle":"7"},{"item":"Raisins","aisle":"9"},{"item":"Razor Blades","aisle":"12 & Checkout"},{"item":"Rice: Packaged","aisle":"5"},{"item":"Rice Cakes","aisle":"4"},{"item":"Rubbermaid","aisle":"12 & 14"},{"item":"Rubbing Alcohol","aisle":"12"},{"item":"Salad Dressing","aisle":"3"},{"item":"Salt","aisle":"7"},{"item":"Sanitary Napkins","aisle":"11"},{"item":"Sardines: Canned","aisle":"2"},{"item":"Sauce: BBQ-Chili-Steak","aisle":"3"},{"item":"Sauce: Tartar-Tabasco","aisle":"3"},{"item":"Sauce: Soy","aisle":"8"},{"item":"Shake & Bake","aisle":"19"},{"item":"Shaving Needs","aisle":"12"},{"item":"Shoe Care","aisle":"11"},{"item":"Shortening","aisle":"3"},{"item":"Soap: Bar-Body-Hand-Liquid","aisle":"12"},{"item":"Soda","aisle":"17"},{"item":"Soup","aisle":"9"},{"item":"Spaghetti Sauce","aisle":"5"},{"item":"Spam","aisle":"2"},{"item":"Spices","aisle":"7"},{"item":"Sponges","aisle":"15"},{"item":"Stationery","aisle":"12"},{"item":"Steel Wool","aisle":"15"},{"item":"Straws","aisle":"13"},{"item":"Stuffing Mix","aisle":"Back Main Aisle"},{"item":"Sugar","aisle":"7"},{"item":"Taco: Sauce-Shells","aisle":"3"},{"item":"Tea Bags","aisle":"7"},{"item":"Tissue: Bath","aisle":"13"},{"item":"Tissue: Facial","aisle":"13"},{"item":"Tomato: Canned","aisle":"5"},{"item":"Tomato: Paste","aisle":"5"},{"item":"Tomato: Sauce","aisle":"5"},{"item":"Tomato: Fresh","aisle":"Produce"},{"item":"Toothbrushes","aisle":"11"},{"item":"Toothpaste","aisle":"11"},{"item":"Toothpicks","aisle":"13"},{"item":"Tuna: Canned","aisle":"2"},{"item":"Vegetables: Canned","aisle":"6"},{"item":"Vegetables: Fresh","aisle":"Produce"},{"item":"Vinegar","aisle":"3"},{"item":"Vitamins","aisle":"11"},{"item":"Water: Distilled-Spring","aisle":"16"},{"item":"Wax Paper","aisle":"14"},{"item":"Wheat Germ","aisle":"4"},{"item":"Windshield Washer Fluid","aisle":"13"}];
+
+  // Lynn #82 keyword aliases — maps common grocery terms to an aisle.
+  const LYNN_ALIASES = [
+    // Dairy / aisle 1
+    ["milk","1"],["yogurt","1"],["half and half","1"],["half & half","1"],["cream cheese","1"],["sour cream","1"],["shredded cheese","1"],["sliced cheese","1"],["string cheese","1"],["margarine","1"],["creamer","1"],
+    // Aisle 2 — meat/seafood/canned protein/eggs
+    ["egg","2"],["bacon","Meat"],["sausage","Meat"],["hot dog","Meat"],["hotdog","Meat"],["chicken breast","Meat"],["ground beef","Meat"],["steak","Meat"],["pork chop","Meat"],["deli","Deli/Fish"],["lunch meat","Deli/Fish"],["lunchmeat","Deli/Fish"],["salmon","Deli/Fish"],["shrimp","Deli/Fish"],["fresh fish","Deli/Fish"],["tuna","2"],["sardine","2"],["canned chicken","2"],["canned clam","2"],["spam","2"],["cottage cheese","2"],
+    // Aisle 3 — condiments/oils/pickled
+    ["ketchup","3"],["catsup","3"],["mustard","3"],["mayo","3"],["mayonnaise","3"],["relish","3"],["pickle","3"],["olive","3"],["salad dressing","3"],["ranch","3"],["italian dressing","3"],["vinegar","3"],["olive oil","3"],["canola oil","3"],["vegetable oil","3"],["cooking oil","3"],["bbq sauce","3"],["barbecue","3"],["hot sauce","3"],["tabasco","3"],["sriracha","3"],["taco","3"],["salsa","3"],["refried bean","3"],["tortilla","3"],["baked bean","3"],["crouton","3"],["shortening","3"],
+    // Aisle 4 — breakfast/cereal/bisquick/syrup/granola
+    ["cereal","4"],["oatmeal","4"],["oats","4"],["granola","4"],["pancake","4"],["syrup","4"],["maple syrup","4"],["pop tart","4"],["poptart","4"],["honey","4"],["molasses","4"],["bisquick","4"],["grits","4"],["wheat germ","4"],["rice cake","4"],
+    // Aisle 5 — pasta/sauce/tomato/mac/parmesan
+    ["pasta","5"],["spaghetti","5"],["macaroni","5"],["noodle","5"],["lasagna","5"],["penne","5"],["ziti","5"],["ravioli","5"],["mac and cheese","5"],["mac & cheese","5"],["hamburger helper","5"],["spaghetti sauce","5"],["marinara","5"],["alfredo","5"],["pasta sauce","5"],["tomato sauce","5"],["tomato paste","5"],["diced tomato","5"],["crushed tomato","5"],["parmesan","5"],["rice","5"],
+    // Aisle 6 — juice/canned veg/dry beans/gravy
+    ["juice","6"],["apple juice","6"],["orange juice","6"],["cranberry juice","6"],["dry bean","6"],["canned vegetable","6"],["corn","6"],["green bean","6"],["peas","6"],["carrots","6"],["canned mushroom","6"],["mushroom","6"],["gravy","6"],["instant potato","6"],
+    // Aisle 7 — baking/spices/coffee/tea/sugar/flour
+    ["sugar","7"],["flour","7"],["baking soda","7"],["baking powder","7"],["yeast","7"],["vanilla","7"],["vanilla extract","7"],["cake mix","7"],["brownie mix","7"],["frosting","7"],["chocolate chip","7"],["cocoa","7"],["pie filling","7"],["pudding","7"],["jello","7"],["food coloring","7"],["coffee","7"],["k cup","7"],["k-cup","7"],["tea bag","7"],["tea","7"],["spice","7"],["salt","7"],["pepper","7"],["cinnamon","7"],["baking","7"],["evaporated milk","7"],["condensed milk","7"],["powdered milk","7"],["coffee filter","7"],
+    // Aisle 8 — asian
+    ["soy sauce","8"],["teriyaki","8"],["asian","8"],["chinese","8"],["hoisin","8"],["sesame oil","8"],["ramen","8"],
+    // Aisle 9 — applesauce/jam/pb/soup/candy/dried fruit/canned fruit
+    ["applesauce","9"],["jam","9"],["jelly","9"],["peanut butter","9"],["almond butter","9"],["nutella","9"],["soup","9"],["broth","9"],["stock","9"],["bouillon","9"],["chowder","9"],["canned fruit","9"],["peaches","9"],["pineapple","9"],["mandarin","9"],["raisin","9"],["prune","9"],["date","9"],["dried fruit","9"],["cranberry sauce","9"],["candy","9"],["chocolate bar","9"],["gum","9"],["mint","9"],
+    // Aisle 10 — chips / snacks
+    ["chip","10"],["potato chip","10"],["tortilla chip","10"],["pretzel","10"],["popcorn","10"],["popping corn","10"],["snack nut","10"],["trail mix","10"],["cashew","10"],["almond","10"],["pistachio","10"],
+    // Aisle 11 — personal care / vitamins / batteries / lightbulbs
+    ["toothpaste","11"],["toothbrush","11"],["mouthwash","11"],["floss","11"],["deodorant","11"],["vitamin","11"],["battery","11"],["batteries","11"],["lightbulb","11"],["light bulb","11"],["tampon","11"],["pad","11"],["feminine","11"],["eye drop","11"],["contact solution","11"],["shoe polish","11"],["shoe lace","11"],
+    // Aisle 12 — baby / pharmacy / shaving / soap / stationery
+    ["diaper","12"],["wipe","12"],["baby","12"],["formula","12"],["razor","12"],["shaving cream","12"],["soap","12"],["body wash","12"],["hand soap","12"],["rubbing alcohol","12"],["peroxide","12"],["bandage","12"],["band aid","12"],["band-aid","12"],["tylenol","12"],["advil","12"],["ibuprofen","12"],["aspirin","12"],["cough","12"],["cold medicine","12"],["laxative","12"],["pen","12"],["pencil","12"],["notebook","12"],["stationery","12"],["tape","12"],
+    // Aisle 13 — paper goods / automotive / bbq
+    ["paper towel","13"],["bath tissue","13"],["toilet paper","13"],["facial tissue","13"],["kleenex","13"],["napkin","13"],["paper plate","13"],["paper cup","13"],["straw","13"],["toothpick","13"],["motor oil","13"],["charcoal","13"],["lighter fluid","13"],["bug spray","13"],["insect","13"],["windshield","13"],["automotive","13"],["bakeware","13"],["baking pan","13"],
+    // Aisle 14 — foil / wraps / pet / bags / plasticware
+    ["aluminum foil","14"],["foil","14"],["plastic wrap","14"],["saran","14"],["wax paper","14"],["freezer wrap","14"],["parchment","14"],["ziploc","14"],["sandwich bag","14"],["trash bag","14"],["garbage bag","14"],["lunch bag","14"],["plasticware","14"],["paper plate","14"],["cat food","14"],["cat litter","14"],["dog food","14"],["pet","14"],
+    // Aisle 15 — cleaning / laundry
+    ["bleach","15"],["ammonia","15"],["laundry detergent","15"],["laundry","15"],["fabric softener","15"],["dryer sheet","15"],["dish soap","15"],["dish detergent","15"],["dishwasher","15"],["cascade","15"],["tide","15"],["clorox","15"],["windex","15"],["lysol","15"],["disinfectant","15"],["air freshener","15"],["febreze","15"],["sponge","15"],["broom","15"],["mop","15"],["steel wool","15"],["brillo","15"],["cleaner","15"],["drain","15"],["household","15"],["candle","15"],
+    // Aisle 16 — water / drink mixes
+    ["water","16"],["bottled water","16"],["sparkling water","16"],["seltzer","16"],["gatorade","16"],["powerade","16"],["kool aid","16"],["kool-aid","16"],["iced tea mix","16"],["lemonade mix","16"],["drink mix","16"],
+    // Aisle 17 — soda
+    ["soda","17"],["pop","17"],["coke","17"],["coca cola","17"],["coca-cola","17"],["pepsi","17"],["sprite","17"],["dr pepper","17"],["root beer","17"],["ginger ale","17"],["mountain dew","17"],["fanta","17"],["seven up","17"],["7up","17"],
+    // Aisle 18 — bread / crackers / cookies
+    ["bread","18"],["bun","18"],["roll","18"],["tortilla wrap","18"],["pita","18"],["english muffin","18"],["cookie","18"],["oreo","18"],["cracker","18"],["saltine","18"],["goldfish","18"],
+    // Aisle 19 — shake & bake / frozen
+    ["shake and bake","19"],["shake & bake","19"],
+    // Aisle 19-20 — frozen
+    ["frozen","19-20"],["frozen pizza","19-20"],["frozen vegetable","19-20"],["frozen dinner","19-20"],["waffle","19-20"],["tv dinner","19-20"],["popsicle","19-20"],["stouffer","19-20"],
+    // Aisle 20 — bread crumbs / ice cubes
+    ["bread crumb","20"],["breadcrumb","20"],["panko","20"],["ice cube","20"],["ice bag","20"],
+    // Produce
+    ["apple","Produce"],["banana","Produce"],["orange","Produce"],["lemon","Produce"],["lime","Produce"],["grape","Produce"],["strawberr","Produce"],["blueberr","Produce"],["raspberr","Produce"],["melon","Produce"],["watermelon","Produce"],["avocado","Produce"],["lettuce","Produce"],["spinach","Produce"],["kale","Produce"],["salad","Produce"],["cucumber","Produce"],["pepper","Produce"],["onion","Produce"],["garlic","Produce"],["potato","Produce"],["tomato","Produce"],["carrot","Produce"],["celery","Produce"],["broccoli","Produce"],["cauliflower","Produce"],["mushroom","Produce"],["corn on the cob","Produce"],["herb","Produce"],["cilantro","Produce"],["parsley","Produce"],["basil","Produce"],["ginger","Produce"],["produce","Produce"],["fruit","Produce"],["vegetable","Produce"],
+    // Ice cream / cones
+    ["ice cream","Produce Corner"],["ice cream cone","Produce Corner"],
+    // Bakery
+    ["bagel","Bakery"],["donut","Bakery"],["doughnut","Bakery"],["pastry","Bakery"],["muffin","Bakery"],["croissant","Bakery"],["cake","Bakery"],["pie","Bakery"],["fresh bread","Bakery"],["birthday candle","Bakery Case"],
+    // Cheese Case / Pizza / Stuffing / Magazines
+    ["specialty cheese","Cheese Case"],["brie","Cheese Case"],["gouda","Cheese Case"],["feta","Cheese Case"],["pizza","Market's Kitchen"],["stuffing","Back Main Aisle"],["magazine","Registers"],["gum","Registers"]
+  ];
+
+  // Middleton #45 embedded data and keyword aliases (aisle numbers differ substantially from Lynn).
+  const MIDDLETON_EMBEDDED = [{"item":"Air Freshener","aisle":"12"},{"item":"Aluminum Foil","aisle":"10"},{"item":"Ammonia","aisle":"12"},{"item":"Applesauce","aisle":"3"},{"item":"Automotive","aisle":"12"},{"item":"Baby Food","aisle":"9"},{"item":"Baby Powder","aisle":"9"},{"item":"Bags: Lunch-Sandwich","aisle":"10"},{"item":"Bags: Garbage-Trash","aisle":"10"},{"item":"Bakery: Fresh","aisle":"Front Corner"},{"item":"Bakery: Packaged","aisle":"14"},{"item":"Bakeware","aisle":"10"},{"item":"Baking Needs","aisle":"5"},{"item":"Barbecue Sauce","aisle":"2"},{"item":"Bath Tissue","aisle":"9"},{"item":"Batteries","aisle":"8"},{"item":"Beans: Baked","aisle":"2"},{"item":"Beans: Dry","aisle":"6"},{"item":"Bisquick","aisle":"3"},{"item":"Bleach","aisle":"12"},{"item":"Bouillon Cubes","aisle":"1"},{"item":"Bread","aisle":"13"},{"item":"Bread Crumbs","aisle":"Above Meat Case"},{"item":"Brooms","aisle":"12"},{"item":"Bug Spray","aisle":"12"},{"item":"Butter","aisle":"Dairy"},{"item":"Butter Buds","aisle":"6"},{"item":"Cake Mix","aisle":"5"},{"item":"Candles: Birthday","aisle":"Bakery Case"},{"item":"Candles: Household","aisle":"12"},{"item":"Candy","aisle":"7"},{"item":"Canning Supplies","aisle":"2"},{"item":"Cat Food","aisle":"10"},{"item":"Cat Litter","aisle":"10"},{"item":"Cat Needs","aisle":"10"},{"item":"Cereal","aisle":"3"},{"item":"Charcoal","aisle":"12"},{"item":"Cheese: Grated Parmesan","aisle":"4"},{"item":"Cheese: Prepackaged","aisle":"Dairy"},{"item":"Cheese: Specialty","aisle":"Cheese Case"},{"item":"Cheese: Fresh","aisle":"Deli/Fish"},{"item":"Cherries: Canned","aisle":"5"},{"item":"Cherries: Jar","aisle":"3"},{"item":"Chili Sauce","aisle":"Above Frozen Seafood"},{"item":"Chinese Food: Canned","aisle":"1"},{"item":"Chowder: Clam-Corn-Potato","aisle":"1"},{"item":"Clams: Canned-Minced-Juice","aisle":"2"},{"item":"Coffee","aisle":"5"},{"item":"Cold Remedies","aisle":"9"},{"item":"Cookies","aisle":"13"},{"item":"Cottage Cheese","aisle":"Dairy"},{"item":"Crackers","aisle":"13"},{"item":"Cranberry Sauce","aisle":"3"},{"item":"Croutons","aisle":"2"},{"item":"Deodorant","aisle":"9"},{"item":"Detergent: Dish","aisle":"12"},{"item":"Detergent: Dishwasher","aisle":"12"},{"item":"Detergent: Laundry","aisle":"12"},{"item":"Diapers","aisle":"9"},{"item":"Disinfectant Spray","aisle":"12"},{"item":"Dog Food","aisle":"10"},{"item":"Dog Needs","aisle":"10"},{"item":"Drain Cleaner","aisle":"12"},{"item":"Dried Fruit: Currants-Dates","aisle":"7"},{"item":"Dried Fruit: Prunes-Raisins","aisle":"7"},{"item":"Dye: Fabric","aisle":"12"},{"item":"Eggs","aisle":"1"},{"item":"Electrical Supplies","aisle":"8"},{"item":"Escargot","aisle":"2"},{"item":"Eye Care","aisle":"9"},{"item":"Facial Tissue","aisle":"9"},{"item":"Fabric Softener","aisle":"12"},{"item":"Feminine Needs","aisle":"8"},{"item":"Fish: Canned","aisle":"2"},{"item":"Fish: Fresh","aisle":"Deli/Fish"},{"item":"Flour","aisle":"5"},{"item":"Food Coloring","aisle":"5"},{"item":"Freezer Wrap","aisle":"10"},{"item":"Frozen Foods","aisle":"14-15"},{"item":"Fruit: Canned","aisle":"3"},{"item":"Fruit: Fresh","aisle":"Produce"},{"item":"Gloves: Work","aisle":"12"},{"item":"Grape Juice","aisle":"6"},{"item":"Granola Bars","aisle":"3"},{"item":"Gravy","aisle":"6"},{"item":"Grits","aisle":"3"},{"item":"Ham Glaze","aisle":"3"},{"item":"Hamburger Helper","aisle":"4"},{"item":"Honey","aisle":"3"},{"item":"Household Cleaners","aisle":"12"},{"item":"Ice Cream","aisle":"Freezer Wall"},{"item":"Ice Cream Cones","aisle":"Frozen Corner"},{"item":"Ice Cubes","aisle":"14"},{"item":"Iced Tea Mix","aisle":"6"},{"item":"Jam & Jelly","aisle":"13"},{"item":"Jello","aisle":"5"},{"item":"Juice","aisle":"6"},{"item":"Ketchup","aisle":"2"},{"item":"Kitchen Gadgets","aisle":"10"},{"item":"Kool Aid","aisle":"6"},{"item":"Kosher Foods","aisle":"2"},{"item":"Laundry Detergent","aisle":"12"},{"item":"Laxative","aisle":"9"},{"item":"Lightbulbs","aisle":"8"},{"item":"Mac & Cheese: Packaged","aisle":"4"},{"item":"Magazines","aisle":"Registers"},{"item":"Mayonnaise","aisle":"2"},{"item":"Meat: Canned","aisle":"2"},{"item":"Meat: Fresh","aisle":"Meat"},{"item":"Mexican Food","aisle":"2"},{"item":"Milk: Fluid","aisle":"Dairy"},{"item":"Milk: Evaporated-Powdered","aisle":"5"},{"item":"Molasses","aisle":"3"},{"item":"Mops","aisle":"12"},{"item":"Mouthwash","aisle":"9"},{"item":"Mushrooms: Canned","aisle":"6"},{"item":"Mustard","aisle":"2"},{"item":"Napkins","aisle":"8"},{"item":"Noodles","aisle":"4"},{"item":"Nuts: Baking","aisle":"5"},{"item":"Nuts: Snack","aisle":"2"},{"item":"Nuts: Peanuts in shell","aisle":"Produce"},{"item":"Oil: Canola-Cooking-Corn","aisle":"2"},{"item":"Oil: Olive-Vegetable","aisle":"2"},{"item":"Oil: Motor","aisle":"12"},{"item":"Olives","aisle":"2"},{"item":"Pancake Mix","aisle":"3"},{"item":"Paper: Cups-Plates","aisle":"10"},{"item":"Paper Towels","aisle":"8"},{"item":"Pasta","aisle":"4"},{"item":"Peanut Butter","aisle":"13"},{"item":"Pie Filling","aisle":"5"},{"item":"Pizza: Fresh","aisle":"Deli"},{"item":"Plasticware","aisle":"10"},{"item":"Pop Tarts","aisle":"3"},{"item":"Popping Corn","aisle":"7"},{"item":"Potato Chips","aisle":"7"},{"item":"Potatoes: Fresh","aisle":"Produce"},{"item":"Potatoes: Canned-Instant","aisle":"6"},{"item":"Pudding Mix","aisle":"5"},{"item":"Raisins","aisle":"7"},{"item":"Razor Blades","aisle":"Checkout"},{"item":"Rice: Packaged","aisle":"4"},{"item":"Rice Cakes","aisle":"3"},{"item":"Rubbermaid","aisle":"10"},{"item":"Rubbing Alcohol","aisle":"9"},{"item":"Salad Dressing","aisle":"2"},{"item":"Salt","aisle":"5"},{"item":"Sanitary Napkins","aisle":"9"},{"item":"Sardines: Canned","aisle":"3"},{"item":"Sauce: BBQ-Chili-Steak","aisle":"2"},{"item":"Sauce: Tartar","aisle":"2"},{"item":"Sauce: Soy","aisle":"1"},{"item":"Shake & Bake","aisle":"Above Meat Case"},{"item":"Shaving Needs","aisle":"8"},{"item":"Shoe Care","aisle":"9"},{"item":"Shortening","aisle":"2"},{"item":"Soap: Bar-Body-Hand-Liquid","aisle":"9"},{"item":"Soda","aisle":"11"},{"item":"Soup","aisle":"1"},{"item":"Spaghetti Sauce","aisle":"4"},{"item":"Spam","aisle":"2"},{"item":"Spices","aisle":"5"},{"item":"Sponges","aisle":"12"},{"item":"Stationery","aisle":"8"},{"item":"Steel Wool","aisle":"12"},{"item":"Straws","aisle":"8"},{"item":"Stuffing Mix","aisle":"Above Meat Case"},{"item":"Sugar","aisle":"5"},{"item":"Taco: Sauce-Shells","aisle":"2"},{"item":"Tea Bags","aisle":"5"},{"item":"Tissue: Bath-Facial","aisle":"9"},{"item":"Tomato: Canned","aisle":"4"},{"item":"Tomato: Paste","aisle":"4"},{"item":"Tomato: Sauce","aisle":"4"},{"item":"Tomato: Fresh","aisle":"Produce"},{"item":"Toothbrushes","aisle":"8"},{"item":"Toothpaste","aisle":"8"},{"item":"Toothpicks","aisle":"10"},{"item":"Tuna: Canned","aisle":"2"},{"item":"Vacuum Cleaner Bags","aisle":"12"},{"item":"Vegetables: Canned","aisle":"6"},{"item":"Vegetables: Fresh","aisle":"Produce"},{"item":"Vinegar","aisle":"2"},{"item":"Vitamins","aisle":"8"},{"item":"Water: Distilled-Spring","aisle":"11"},{"item":"Wax Paper","aisle":"10"},{"item":"Wheat Germ","aisle":"3"},{"item":"Windshield Washer Fluid","aisle":"12"}];
+
+  const MIDDLETON_ALIASES = [
+    // Dairy Aisle
+    ["milk","Dairy"],["yogurt","Dairy"],["half and half","Dairy"],["half & half","Dairy"],["cream cheese","Dairy"],["sour cream","Dairy"],["shredded cheese","Dairy"],["sliced cheese","Dairy"],["string cheese","Dairy"],["margarine","Dairy"],["creamer","Dairy"],["butter","Dairy"],["cottage cheese","Dairy"],
+    // Aisle 1 — soup / asian / eggs
+    ["egg","1"],["soup","1"],["broth","1"],["stock","1"],["bouillon","1"],["chowder","1"],["soy sauce","1"],["teriyaki","1"],["asian","1"],["chinese","1"],["hoisin","1"],["sesame oil","1"],["ramen","1"],
+    // Aisle 2 — condiments/oils/canned protein/pickled
+    ["ketchup","2"],["catsup","2"],["mustard","2"],["mayo","2"],["mayonnaise","2"],["relish","2"],["pickle","2"],["olive","2"],["salad dressing","2"],["ranch","2"],["italian dressing","2"],["vinegar","2"],["olive oil","2"],["canola oil","2"],["vegetable oil","2"],["cooking oil","2"],["bbq sauce","2"],["barbecue","2"],["hot sauce","2"],["tabasco","2"],["sriracha","2"],["taco","2"],["salsa","2"],["refried bean","2"],["tortilla","2"],["baked bean","2"],["crouton","2"],["shortening","2"],["tuna","2"],["canned chicken","2"],["canned clam","2"],["spam","2"],["kosher","2"],["escargot","2"],["snack nut","2"],["canned meat","2"],
+    // Aisle 3 — breakfast/cereal/applesauce/canned fruit/cranberry/honey
+    ["cereal","3"],["oatmeal","3"],["oats","3"],["granola","3"],["pancake","3"],["syrup","3"],["maple syrup","3"],["pop tart","3"],["poptart","3"],["honey","3"],["molasses","3"],["bisquick","3"],["grits","3"],["wheat germ","3"],["rice cake","3"],["applesauce","3"],["canned fruit","3"],["peaches","3"],["pineapple","3"],["mandarin","3"],["cranberry sauce","3"],["sardine","3"],["ham glaze","3"],
+    // Aisle 4 — pasta/tomato/mac/parmesan/spaghetti sauce
+    ["pasta","4"],["spaghetti","4"],["macaroni","4"],["noodle","4"],["lasagna","4"],["penne","4"],["ziti","4"],["ravioli","4"],["mac and cheese","4"],["mac & cheese","4"],["hamburger helper","4"],["spaghetti sauce","4"],["marinara","4"],["alfredo","4"],["pasta sauce","4"],["tomato sauce","4"],["tomato paste","4"],["diced tomato","4"],["crushed tomato","4"],["parmesan","4"],["rice","4"],
+    // Aisle 5 — baking/spices/coffee/tea/sugar/flour/jello/pudding
+    ["sugar","5"],["flour","5"],["baking soda","5"],["baking powder","5"],["yeast","5"],["vanilla","5"],["vanilla extract","5"],["cake mix","5"],["brownie mix","5"],["frosting","5"],["chocolate chip","5"],["cocoa","5"],["pie filling","5"],["pudding","5"],["jello","5"],["food coloring","5"],["coffee","5"],["k cup","5"],["k-cup","5"],["tea bag","5"],["tea","5"],["spice","5"],["salt","5"],["pepper","5"],["cinnamon","5"],["baking","5"],["evaporated milk","5"],["condensed milk","5"],["powdered milk","5"],["coffee filter","5"],
+    // Aisle 6 — juice/canned veg/dry beans/gravy/drink mixes
+    ["juice","6"],["apple juice","6"],["orange juice","6"],["grape juice","6"],["cranberry juice","6"],["dry bean","6"],["canned vegetable","6"],["corn","6"],["green bean","6"],["peas","6"],["canned mushroom","6"],["mushroom","6"],["gravy","6"],["instant potato","6"],["kool aid","6"],["kool-aid","6"],["iced tea mix","6"],["lemonade mix","6"],["drink mix","6"],
+    // Aisle 7 — chips/snacks/candy/dried fruit
+    ["chip","7"],["potato chip","7"],["tortilla chip","7"],["pretzel","7"],["popcorn","7"],["popping corn","7"],["trail mix","7"],["cashew","7"],["almond","7"],["pistachio","7"],["candy","7"],["chocolate bar","7"],["raisin","7"],["prune","7"],["date","7"],["dried fruit","7"],
+    // Aisle 8 — batteries/lightbulbs/paper towels/napkins/stationery/shaving/toothbrushes/vitamins/feminine
+    ["battery","8"],["batteries","8"],["lightbulb","8"],["light bulb","8"],["vitamin","8"],["paper towel","8"],["napkin","8"],["straw","8"],["razor","8"],["shaving cream","8"],["toothpaste","8"],["toothbrush","8"],["floss","8"],["tampon","8"],["pad","8"],["feminine","8"],["pen","8"],["pencil","8"],["notebook","8"],["stationery","8"],["tape","8"],["electrical","8"],
+    // Aisle 9 — pharmacy/soap/deodorant/bath tissue/facial tissue/baby/shoe care/eye care
+    ["diaper","9"],["wipe","9"],["baby","9"],["formula","9"],["soap","9"],["body wash","9"],["hand soap","9"],["rubbing alcohol","9"],["peroxide","9"],["bandage","9"],["band aid","9"],["band-aid","9"],["tylenol","9"],["advil","9"],["ibuprofen","9"],["aspirin","9"],["cough","9"],["cold medicine","9"],["laxative","9"],["deodorant","9"],["mouthwash","9"],["bath tissue","9"],["toilet paper","9"],["facial tissue","9"],["kleenex","9"],["eye drop","9"],["contact solution","9"],["shoe polish","9"],["shoe lace","9"],
+    // Aisle 10 — foil/wraps/pet/bags/plasticware/paper cups&plates/bakeware
+    ["aluminum foil","10"],["foil","10"],["plastic wrap","10"],["saran","10"],["wax paper","10"],["freezer wrap","10"],["parchment","10"],["ziploc","10"],["sandwich bag","10"],["trash bag","10"],["garbage bag","10"],["lunch bag","10"],["plasticware","10"],["paper plate","10"],["paper cup","10"],["cat food","10"],["cat litter","10"],["dog food","10"],["pet","10"],["toothpick","10"],["bakeware","10"],["baking pan","10"],["kitchen gadget","10"],["rubbermaid","10"],
+    // Aisle 11 — soda/water
+    ["soda","11"],["pop","11"],["coke","11"],["coca cola","11"],["coca-cola","11"],["pepsi","11"],["sprite","11"],["dr pepper","11"],["root beer","11"],["ginger ale","11"],["mountain dew","11"],["fanta","11"],["seven up","11"],["7up","11"],["water","11"],["bottled water","11"],["sparkling water","11"],["seltzer","11"],["gatorade","11"],["powerade","11"],
+    // Aisle 12 — cleaning/laundry/automotive/bug spray/motor oil
+    ["bleach","12"],["ammonia","12"],["laundry detergent","12"],["laundry","12"],["fabric softener","12"],["dryer sheet","12"],["dish soap","12"],["dish detergent","12"],["dishwasher","12"],["cascade","12"],["tide","12"],["clorox","12"],["windex","12"],["lysol","12"],["disinfectant","12"],["air freshener","12"],["febreze","12"],["sponge","12"],["broom","12"],["mop","12"],["steel wool","12"],["brillo","12"],["cleaner","12"],["drain","12"],["household","12"],["candle","12"],["motor oil","12"],["automotive","12"],["charcoal","12"],["lighter fluid","12"],["bug spray","12"],["insect","12"],["windshield","12"],["vacuum","12"],
+    // Aisle 13 — bread/crackers/cookies/peanut butter/jam
+    ["bread","13"],["bun","13"],["roll","13"],["tortilla wrap","13"],["pita","13"],["english muffin","13"],["cookie","13"],["oreo","13"],["cracker","13"],["saltine","13"],["goldfish","13"],["peanut butter","13"],["almond butter","13"],["nutella","13"],["jam","13"],["jelly","13"],
+    // Aisle 14-15 — frozen
+    ["frozen","14-15"],["frozen pizza","14-15"],["frozen vegetable","14-15"],["frozen dinner","14-15"],["waffle","14-15"],["tv dinner","14-15"],["popsicle","14-15"],["stouffer","14-15"],
+    // Aisle 14 — ice cubes
+    ["ice cube","14"],["ice bag","14"],
+    // Above Meat Case — bread crumbs, shake & bake, stuffing
+    ["bread crumb","Above Meat Case"],["breadcrumb","Above Meat Case"],["panko","Above Meat Case"],["shake and bake","Above Meat Case"],["shake & bake","Above Meat Case"],["stuffing","Above Meat Case"],
+    // Produce
+    ["apple","Produce"],["banana","Produce"],["orange","Produce"],["lemon","Produce"],["lime","Produce"],["grape","Produce"],["strawberr","Produce"],["blueberr","Produce"],["raspberr","Produce"],["melon","Produce"],["watermelon","Produce"],["avocado","Produce"],["lettuce","Produce"],["spinach","Produce"],["kale","Produce"],["salad","Produce"],["cucumber","Produce"],["bell pepper","Produce"],["onion","Produce"],["garlic","Produce"],["potato","Produce"],["tomato","Produce"],["carrot","Produce"],["celery","Produce"],["broccoli","Produce"],["cauliflower","Produce"],["corn on the cob","Produce"],["herb","Produce"],["cilantro","Produce"],["parsley","Produce"],["basil","Produce"],["ginger","Produce"],["produce","Produce"],["fruit","Produce"],["vegetable","Produce"],
+    // Ice cream / cones
+    ["ice cream","Freezer Wall"],["ice cream cone","Frozen Corner"],
+    // Bakery / Cheese Case / Deli / Magazines / Razor
+    ["bagel","Bakery"],["donut","Bakery"],["doughnut","Bakery"],["pastry","Bakery"],["muffin","Bakery"],["croissant","Bakery"],["cake","Bakery"],["pie","Bakery"],["fresh bread","Bakery"],["birthday candle","Bakery Case"],
+    ["specialty cheese","Cheese Case"],["brie","Cheese Case"],["gouda","Cheese Case"],["feta","Cheese Case"],
+    ["pizza","Deli"],["fresh fish","Deli/Fish"],["salmon","Deli/Fish"],["shrimp","Deli/Fish"],["lunch meat","Deli/Fish"],["lunchmeat","Deli/Fish"],["deli","Deli/Fish"],
+    ["bacon","Meat"],["sausage","Meat"],["hot dog","Meat"],["hotdog","Meat"],["chicken breast","Meat"],["ground beef","Meat"],["steak","Meat"],["pork chop","Meat"],
+    ["magazine","Registers"],["gum","Registers"],["razor blade","Checkout"]
+  ];
+
+  const LOCATIONS = {
+    lynn: {
+      id: "lynn",
+      name: "Lynn #82",
+      subtitle: "40 Federal Street, Lynn, MA",
+      file: "mb_lynn_82_aisles.json",
+      embedded: LYNN_EMBEDDED,
+      aliases: LYNN_ALIASES
+    },
+    middleton: {
+      id: "middleton",
+      name: "Middleton #45",
+      subtitle: "230 South Main Street, Middleton, MA",
+      file: "mb_middleton_45_aisles.json",
+      embedded: MIDDLETON_EMBEDDED,
+      aliases: MIDDLETON_ALIASES
+    }
+  };
+
+  let currentLocationId = localStorage.getItem('mbLocationId') || 'lynn';
+  if (!LOCATIONS[currentLocationId]) currentLocationId = 'lynn';
+  function getCurrentLocation() { return LOCATIONS[currentLocationId]; }
+
+  // Infer aisle for an arbitrary item name by scanning the guide + aliases.
+  // Returns aisle string, or null if nothing matched.
+  function inferAisle(rawName) {
+    if (!rawName) return null;
+    const name = rawName.toLowerCase().trim();
+    if (!name) return null;
+
+    // 1) exact match against guide items
+    const exact = aisles.find(a => a.item.toLowerCase() === name);
+    if (exact) return exact.aisle;
+
+    // 2) substring match on guide item tokens (strip punctuation, compare word-by-word)
+    //    score = length of the longest guide keyword found in the user's text
+    let best = { score: 0, aisle: null };
+    const nameClean = ' ' + name.replace(/[^a-z0-9& ]+/g, ' ').replace(/\s+/g, ' ').trim() + ' ';
+
+    for (const entry of aisles) {
+      // guide items like "Cheese: Grated Parmesan" -> tokens: "cheese grated parmesan", plus each colon-separated phrase
+      const raw = entry.item.toLowerCase();
+      const phrases = raw.split(/[:,]/).map(s => s.trim()).filter(Boolean);
+      // also try each hyphen-split alternative in phrases (e.g. "Canola-Cooking-Corn")
+      const candidates = new Set();
+      for (const p of phrases) {
+        candidates.add(p);
+        for (const piece of p.split(/[-/&]/)) {
+          const t = piece.trim();
+          if (t.length >= 3) candidates.add(t);
+        }
+      }
+      for (const cand of candidates) {
+        if (cand.length < 3) continue;
+        if (nameClean.includes(' ' + cand + ' ') || nameClean.includes(cand)) {
+          if (cand.length > best.score) best = { score: cand.length, aisle: entry.aisle };
+        }
+      }
+    }
+
+    // 3) keyword alias table (for brand names / common products not in the guide)
+    for (const [kw, aisle] of getCurrentLocation().aliases) {
+      if (nameClean.includes(kw)) {
+        if (kw.length > best.score) best = { score: kw.length, aisle };
+      }
+    }
+
+    return best.aisle;
+  }
+  
+  // Initialize the app
+  async function init() {
+    // Load saved state
+    loadState();
+    
+    // Set up event listeners
+    setupEventListeners();
+    setInputMode('search');
+    updateReverseOrderButton();
+    updateLocationHeader();
+    
+    // Try to load aisle data
+    await loadAisleData();
+    
+    // Initialize saved lists panel (hidden by default)
+    renderSavedLists();
+  }
+
+  function openMasterDatabase() {
+    if (!('indexedDB' in window)) {
+      return Promise.reject(new Error('This browser does not support IndexedDB'));
+    }
+    
+    if (masterDbPromise) {
+      return masterDbPromise;
+    }
+    
+    masterDbPromise = new Promise((resolve, reject) => {
+      const request = indexedDB.open(MASTER_DB.name, MASTER_DB.version);
+      
+      request.onupgradeneeded = (event) => {
+        const db = event.target.result;
+        if (!db.objectStoreNames.contains(MASTER_DB.store)) {
+          db.createObjectStore(MASTER_DB.store, { keyPath: 'key' });
+        }
+      };
+      
+      request.onsuccess = () => {
+        const db = request.result;
+        db.onversionchange = () => {
+          db.close();
+          masterDbPromise = null;
+        };
+        resolve(db);
+      };
+      
+      request.onerror = () => {
+        masterDbPromise = null;
+        reject(request.error || new Error('Unable to open the search database'));
+      };
+    });
+    
+    return masterDbPromise;
+  }
+
+  function buildMasterItemRecord(itemName, aisle, options = {}) {
+    const cleanName = (itemName || '').toString().trim();
+    if (!cleanName) return null;
+    
+    const normalizedAisle = normalizeAisle(aisle);
+    const originalAisle = (options.originalAisle || normalizedAisle || 'Unknown').toString().trim() || 'Unknown';
+    
+    return {
+      key: cleanName.toLowerCase(),
+      item: cleanName,
+      aisle: normalizedAisle,
+      originalAisle,
+      updatedAt: options.updatedAt || new Date().toISOString(),
+      source: options.source || 'user'
+    };
+  }
+
+  async function getAllMasterItems() {
+    const db = await openMasterDatabase();
+    
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(MASTER_DB.store, 'readonly');
+      const request = tx.objectStore(MASTER_DB.store).getAll();
+      
+      request.onsuccess = () => {
+        const records = (request.result || []).sort((a, b) => a.item.localeCompare(b.item));
+        resolve(records);
+      };
+      
+      request.onerror = () => {
+        reject(request.error || tx.error || new Error('Unable to read the search database'));
+      };
+    });
+  }
+
+  async function getMasterItemByName(itemName) {
+    const cleanName = (itemName || '').toString().trim().toLowerCase();
+    if (!cleanName) return null;
+    
+    const db = await openMasterDatabase();
+    
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(MASTER_DB.store, 'readonly');
+      const request = tx.objectStore(MASTER_DB.store).get(cleanName);
+      
+      request.onsuccess = () => resolve(request.result || null);
+      request.onerror = () => reject(request.error || tx.error || new Error('Unable to read the search database'));
+    });
+  }
+
+  async function putMasterItemRecord(record) {
+    const db = await openMasterDatabase();
+    
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(MASTER_DB.store, 'readwrite');
+      const request = tx.objectStore(MASTER_DB.store).put(record);
+      
+      request.onsuccess = () => resolve(record);
+      request.onerror = () => reject(request.error || tx.error || new Error('Unable to save to the search database'));
+    });
+  }
+
+  async function upsertMasterItem(itemName, aisle, options = {}) {
+    const record = buildMasterItemRecord(itemName, aisle, options);
+    if (!record) {
+      return { added: false, updated: false };
+    }
+    
+    const existing = await getMasterItemByName(record.item);
+    if (!existing) {
+      await putMasterItemRecord(record);
+      return { added: true, updated: false };
+    }
+    
+    const nextRecord = { ...existing };
+    let changed = false;
+    const incomingKnownAisle = record.aisle && record.aisle !== 'Unknown';
+    const existingKnownAisle = nextRecord.aisle && nextRecord.aisle !== 'Unknown';
+    
+    if (record.item !== nextRecord.item) {
+      nextRecord.item = record.item;
+      changed = true;
+    }
+    
+    if (options.forceAisle) {
+      if (nextRecord.aisle !== record.aisle || nextRecord.originalAisle !== record.originalAisle) {
+        nextRecord.aisle = record.aisle;
+        nextRecord.originalAisle = record.originalAisle;
+        changed = true;
+      }
+    } else if (!existingKnownAisle && incomingKnownAisle) {
+      nextRecord.aisle = record.aisle;
+      nextRecord.originalAisle = record.originalAisle;
+      changed = true;
+    } else if (options.overwriteKnownAisle && incomingKnownAisle && nextRecord.aisle !== record.aisle) {
+      nextRecord.aisle = record.aisle;
+      nextRecord.originalAisle = record.originalAisle;
+      changed = true;
+    } else if (!nextRecord.aisle) {
+      nextRecord.aisle = record.aisle;
+      nextRecord.originalAisle = record.originalAisle;
+      changed = true;
+    }
+    
+    if (!changed) {
+      return { added: false, updated: false };
+    }
+    
+    nextRecord.updatedAt = options.updatedAt || new Date().toISOString();
+    nextRecord.source = options.source || nextRecord.source || 'user';
+    await putMasterItemRecord(nextRecord);
+    
+    return { added: false, updated: true };
+  }
+
+  async function seedMasterItems(rows, options = {}) {
+    let addedCount = 0;
+    let updatedCount = 0;
+    
+    for (const row of rows || []) {
+      const result = await upsertMasterItem(
+        row.item || row.name || '',
+        row.aisle || row.section || row.location || 'Unknown',
+        {
+          source: options.source || 'seed',
+          overwriteKnownAisle: !!options.overwriteKnownAisle,
+          forceAisle: !!options.forceAisle,
+          originalAisle: row.originalAisle || row.aisle || row.section || row.location || 'Unknown',
+          updatedAt: options.updatedAt
+        }
+      );
+      
+      if (result.added) addedCount++;
+      if (result.updated) updatedCount++;
+    }
+    
+    return { addedCount, updatedCount };
+  }
+
+  function collectLegacyMasterRows() {
+    const rows = [];
+    
+    try {
+      const corrections = localStorage.getItem('mbAisleCorrections');
+      if (corrections) {
+        const correctionMap = JSON.parse(corrections);
+        Object.keys(correctionMap).forEach(itemName => {
+          rows.push({
+            item: itemName,
+            aisle: correctionMap[itemName],
+            originalAisle: correctionMap[itemName]
+          });
+        });
+      }
+    } catch (error) {
+      console.error('Error reading legacy aisle corrections:', error);
+    }
+    
+    try {
+      const masterList = localStorage.getItem('mbMasterList');
+      if (masterList) {
+        const masterListData = JSON.parse(masterList);
+        masterListData.forEach(item => {
+          rows.push({
+            item: item.item,
+            aisle: item.aisle || item.originalAisle || 'Unknown',
+            originalAisle: item.originalAisle || item.aisle || 'Unknown'
+          });
+        });
+      }
+    } catch (error) {
+      console.error('Error reading legacy master list:', error);
+    }
+    
+    return rows;
+  }
+
+  async function migrateLegacyMasterData() {
+    if (localStorage.getItem(MASTER_DB.migrationKey) === 'done') {
+      return { addedCount: 0, updatedCount: 0 };
+    }
+    
+    const legacyRows = collectLegacyMasterRows();
+    const result = legacyRows.length
+      ? await seedMasterItems(legacyRows, {
+          source: 'localStorage-migration',
+          overwriteKnownAisle: true,
+          forceAisle: true
+        })
+      : { addedCount: 0, updatedCount: 0 };
+    
+    localStorage.setItem(MASTER_DB.migrationKey, 'done');
+    return result;
+  }
+
+  async function refreshMasterItemsFromDb() {
+    const masterItems = await getAllMasterItems();
+
+    aisles = masterItems.map(item => ({
+      item: item.item,
+      aisle: normalizeAisle(item.aisle),
+      originalAisle: item.originalAisle || item.aisle || 'Unknown'
+    }));
+
+    renderBrowseItems();
+    return aisles;
+  }
+
+  // Re-infer aisles for items that were previously saved with "Unknown" (or no) aisle,
+  // both in the current shopping list and in the searchable master database.
+  async function reinferAislesForPastItems() {
+    let listFixed = 0;
+    for (const it of items) {
+      const current = normalizeAisle(it.aisle);
+      if (!current || current === 'Unknown') {
+        const inferred = inferAisle(it.name);
+        if (inferred) {
+          it.aisle = inferred;
+          listFixed++;
+        }
+      }
+    }
+    if (listFixed) saveState();
+
+    let dbFixed = 0;
+    try {
+      const masterItems = await getAllMasterItems();
+      for (const row of masterItems) {
+        const current = normalizeAisle(row.aisle);
+        if (!current || current === 'Unknown') {
+          const inferred = inferAisle(row.item);
+          if (inferred) {
+            await upsertMasterItem(row.item, inferred, {
+              source: 'pdf-inference-backfill',
+              overwriteKnownAisle: true,
+              originalAisle: inferred
+            });
+            dbFixed++;
+          }
+        }
+      }
+      if (dbFixed) await refreshMasterItemsFromDb();
+    } catch (e) {
+      console.error('Error re-inferring master DB aisles:', e);
+    }
+
+    if (listFixed || dbFixed) {
+      render();
+      setStatus(`Inferred aisles for ${listFixed} list item(s) and ${dbFixed} saved item(s)`);
+    }
+    return { listFixed, dbFixed };
+  }
+  
+  function isItemInCurrentList(itemName) {
+    const lowerName = (itemName || '').toString().trim().toLowerCase();
+    return items.some(item => item.name.toLowerCase() === lowerName);
+  }
+  
+  function setInputMode(mode) {
+    currentInputMode = mode === 'browse' ? 'browse' : 'search';
+    
+    if (els.searchAddView) {
+      els.searchAddView.style.display = currentInputMode === 'search' ? 'flex' : 'none';
+    }
+    if (els.browseView) {
+      els.browseView.style.display = currentInputMode === 'browse' ? 'block' : 'none';
+    }
+    if (els.searchModeBtn) {
+      els.searchModeBtn.classList.toggle('active', currentInputMode === 'search');
+      els.searchModeBtn.classList.toggle('secondary', currentInputMode !== 'search');
+    }
+    if (els.browseModeBtn) {
+      els.browseModeBtn.classList.toggle('active', currentInputMode === 'browse');
+      els.browseModeBtn.classList.toggle('secondary', currentInputMode !== 'browse');
+    }
+    
+    if (currentInputMode === 'search') {
+      els.input.focus();
+      return;
+    }
+    
+    document.getElementById('suggestions').style.display = 'none';
+    renderBrowseItems();
+    els.browseFilterInput.focus();
+  }
+  
+  function getSortedBrowseItems() {
+    return [...aisles].sort((a, b) => {
+      const aisleCompare = (a.aisle || 'Unknown').localeCompare(b.aisle || 'Unknown', undefined, { numeric: true });
+      if (aisleCompare !== 0) return aisleCompare;
+      return a.item.localeCompare(b.item);
+    });
+  }
+  
+  function getVisibleBrowseItems() {
+    const filterTerms = browseFilter.toLowerCase().split(/\s+/).filter(Boolean);
+    const allItems = getSortedBrowseItems();
+    
+    if (filterTerms.length === 0) {
+      return allItems;
+    }
+    
+    return allItems.filter(item => {
+      const haystack = `${item.item} ${item.aisle || ''}`.toLowerCase();
+      return filterTerms.every(term => haystack.includes(term));
+    });
+  }
+  
+  function renderBrowseItems() {
+    if (!els.browseItems || !els.browseSummary) return;
+    
+    const validKeys = new Set(aisles.map(item => item.item.toLowerCase()));
+    browseSelections = new Set(
+      [...browseSelections].filter(key => validKeys.has(key) && !isItemInCurrentList(key))
+    );
+    
+    const visibleItems = getVisibleBrowseItems();
+    
+    els.browseSummary.textContent = `${browseSelections.size} selected | ${visibleItems.length} visible`;
+    
+    if (visibleItems.length === 0) {
+      els.browseItems.innerHTML = '<div class="browse-empty">No items match this filter.</div>';
+      return;
+    }
+    
+    els.browseItems.innerHTML = visibleItems.map(item => {
+      const itemKey = item.item.toLowerCase();
+      const inList = isItemInCurrentList(item.item);
+      if (inList) {
+        browseSelections.delete(itemKey);
+      }
+      const checked = browseSelections.has(itemKey) ? 'checked' : '';
+      const disabled = inList ? 'disabled' : '';
+      const rowClass = inList ? 'browse-item disabled' : 'browse-item';
+      const suffix = inList
+        ? '<span class="muted">Already in list</span>'
+        : '';
+      
+      return `
+        <label class="${rowClass}">
+          <input type="checkbox" class="browse-checkbox" data-item-key="${escapeHtml(itemKey)}" ${checked} ${disabled} />
+          <span class="browse-item-name">${escapeHtml(item.item)}</span>
+          <span class="item-aisle">${escapeHtml(item.aisle || 'Unknown')}</span>
+          ${suffix}
+        </label>
+      `;
+    }).join('');
+    
+    document.querySelectorAll('.browse-checkbox').forEach(checkbox => {
+      checkbox.addEventListener('change', (event) => {
+        const itemKey = event.target.getAttribute('data-item-key');
+        if (!itemKey) return;
+        
+        if (event.target.checked) {
+          browseSelections.add(itemKey);
+        } else {
+          browseSelections.delete(itemKey);
+        }
+        
+        els.browseSummary.textContent = `${browseSelections.size} selected | ${visibleItems.length} visible`;
+      });
+    });
+  }
+  
+  function selectVisibleBrowseItems() {
+    const visibleItems = getVisibleBrowseItems();
+    let addedSelections = 0;
+    
+    visibleItems.forEach(item => {
+      if (!isItemInCurrentList(item.item)) {
+        const key = item.item.toLowerCase();
+        if (!browseSelections.has(key)) {
+          browseSelections.add(key);
+          addedSelections++;
+        }
+      }
+    });
+    
+    renderBrowseItems();
+    setStatus(
+      addedSelections > 0
+        ? `${addedSelections} visible item${addedSelections !== 1 ? 's' : ''} selected`
+        : 'All visible items are already selected or already in your list'
+    );
+  }
+  
+  function clearBrowseSelection() {
+    browseSelections.clear();
+    renderBrowseItems();
+    setStatus('Browse selection cleared');
+  }
+  
+  // Set up all event listeners
+  function setupEventListeners() {
+    // Add item
+    els.addBtn.addEventListener('click', addItem);
+    els.searchModeBtn.addEventListener('click', () => setInputMode('search'));
+    els.browseModeBtn.addEventListener('click', () => setInputMode('browse'));
+    els.browseFilterInput.addEventListener('input', (e) => {
+      browseFilter = e.target.value || '';
+      renderBrowseItems();
+    });
+    els.selectVisibleBtn.addEventListener('click', selectVisibleBrowseItems);
+    els.clearBrowseSelectionBtn.addEventListener('click', clearBrowseSelection);
+    els.addSelectedBtn.addEventListener('click', addSelectedBrowseItems);
+    
+    // Handle input for search and show suggestions
+    els.input.addEventListener('input', (e) => {
+      showSuggestions(e.target.value);
+    });
+    
+    // Add item on Enter key
+    els.input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        addItem();
+      }
+    });
+    
+    // Hide suggestions when clicking outside
+    document.addEventListener('click', (e) => {
+      if (e.target !== els.input && e.target !== document.getElementById('suggestions')) {
+        document.getElementById('suggestions').style.display = 'none';
+      }
+    });
+    
+    // Location switcher
+    els.locationSelect.addEventListener('change', async (e) => {
+      await switchLocation(e.target.value);
+    });
+
+    // Reverse order toggle
+    els.reverseOrderBtn.addEventListener('click', () => {
+      reverseAisles = !reverseAisles;
+      updateReverseOrderButton();
+      render();
+      saveState();
+    });
+    
+    // Print button
+    els.printBtn.addEventListener('click', () => {
+      // Update print date
+      const now = new Date();
+      els.printDate.textContent = `Generated on ${now.toLocaleDateString()} at ${now.toLocaleTimeString()}`;
+      
+      // Small delay to ensure DOM is updated
+      setTimeout(() => {
+        window.print();
+      }, 100);
+    });
+    
+    // Save list button
+    els.saveListBtn.addEventListener('click', saveCurrentList);
+
+    // Load list button
+    els.loadListBtn.addEventListener('click', toggleSavedListsPanel);
+
+    // Clear button
+    els.clearBtn.addEventListener('click', () => {
+      if (confirm('Are you sure you want to clear the entire shopping list?')) {
+        items = [];
+        saveState();
+        render();
+        setStatus('Shopping list cleared');
+      }
+    });
+  }
+  
+  // Set status message
+  function setStatus(msg, isError = false) {
+    if (!els.status) return;
+    els.status.textContent = msg;
+    els.status.style.color = isError ? '#dc3545' : '#495057';
+    console.log(`Status: ${msg}`);
+  }
+  
+  function updateReverseOrderButton() {
+    if (!els.reverseOrderBtn) return;
+    els.reverseOrderBtn.setAttribute('aria-pressed', reverseAisles ? 'true' : 'false');
+    if (els.reverseOrderIcon) els.reverseOrderIcon.textContent = reverseAisles ? '↑' : '↓';
+    if (els.reverseOrderLabel) els.reverseOrderLabel.textContent = reverseAisles ? 'Aisles: high → low' : 'Aisles: low → high';
+  }
+
+  // Normalize aisle names for consistency
+  function normalizeAisle(v) {
+    if (!v) return 'Unknown';
+    
+    // Convert to string and clean up
+    v = v.toString().trim();
+    
+    // Standardize aisle names
+    v = v.replace(/Dept(?:artment)?(\/|$)/gi, '').trim();
+    v = v.replace(/\s*\/\s*/g, '/');
+    v = v.replace(/\s+/g, ' ');
+    
+    // Specific normalizations for common departments
+    if (/^\s*produce|fruit|vegetable/i.test(v)) return 'Produce';
+    if (/^\s*bakery|bread|cake|donut|pastry/i.test(v)) return 'Bakery';
+    if (/^\s*(?:deli|fish|seafood)/i.test(v)) return 'Deli/Fish';
+    if (/^\s*meat/i.test(v)) return 'Meat';
+    if (/^\s*(?:frozen|ice\s*cream|ice\s*cream)/i.test(v)) return 'Frozen';
+    if (/^\s*dairy|cheese|milk|yogurt|butter/i.test(v)) return 'Dairy';
+    if (/^\s*breakfast|cereal|oatmeal/i.test(v)) return 'Breakfast';
+    if (/^\s*beverage|drink|soda|water|juice/i.test(v)) return 'Beverages';
+    if (/^\s*snack|candy|chips|cookie|cracker/i.test(v)) return 'Snacks';
+    
+    // Clean up aisle numbers (e.g., "Aisle 5" -> "5")
+    const aisleNumMatch = v.match(/^\s*(?:aisle\s*)?(\d+[a-z]?)(?:\s*[-&]\s*(\d+[a-z]?))?\s*$/i);
+    if (aisleNumMatch) {
+      return aisleNumMatch[2] 
+        ? `${aisleNumMatch[1]}-${aisleNumMatch[2]}`
+        : aisleNumMatch[1];
+    }
+    
+    return v || 'Unknown';
+  }
+  
+  // Process and apply aisle data
+  function applyData(rows) {
+    if (!Array.isArray(rows)) {
+      setStatus('Invalid data format: expected an array of items', true);
+      return false;
+    }
+    
+    // Process the data
+    aisles = rows
+      .map(row => {
+        // Handle different possible property names
+        const itemName = (row.item || row.name || '').toString().trim();
+        const aisle = normalizeAisle(row.aisle || row.section || row.location || '');
+        
+        return {
+          item: itemName,
+          aisle: aisle,
+          originalAisle: row.aisle || '' // Keep original for reference
+        };
+      })
+      .filter(x => x.item); // Remove empty items
+    
+    setStatus(`Loaded ${aisles.length} items`);
+    return true;
+  }
+  
+  // Show suggestions based on search input
+  function showSuggestions(searchTerm) {
+    const suggestionsEl = document.getElementById('suggestions');
+    suggestionsEl.innerHTML = '';
+    
+    if (!searchTerm) {
+      suggestionsEl.style.display = 'none';
+      return;
+    }
+    
+    const searchLower = searchTerm.toLowerCase();
+    const searchTerms = searchLower.split(' ').filter(Boolean);
+    const uniqueItems = {};
+    let matchCount = 0;
+    
+    // Find matching items
+    const matches = [];
+    for (const item of aisles) {
+      const lowerItem = item.item.toLowerCase();
+      // Remove special characters for better matching
+      const cleanItem = lowerItem.replace(/[:\-,]/g, ' ').replace(/\s+/g, ' ');
+      
+      // Check if all search terms are in the item (in cleaned version or original)
+      const matchesAllTerms = searchTerms.every(term => 
+        lowerItem.includes(term) || cleanItem.includes(term)
+      );
+      
+      if (matchesAllTerms && !uniqueItems[lowerItem]) {
+        matches.push(item);
+        uniqueItems[lowerItem] = true;
+        matchCount++;
+        
+        if (matchCount >= 10) break; // Limit to 10 suggestions
+      }
+    }
+    
+    // Display suggestions
+    if (matches.length > 0) {
+      matches.forEach(item => {
+        const div = document.createElement('div');
+        div.textContent = item.item;
+        div.style.padding = '8px 12px';
+        div.style.cursor = 'pointer';
+        div.onmouseover = () => div.style.backgroundColor = '#f5f5f5';
+        div.onmouseout = () => div.style.backgroundColor = 'transparent';
+        div.onclick = () => {
+          els.input.value = item.item;
+          suggestionsEl.style.display = 'none';
+          els.input.focus();
+        };
+        suggestionsEl.appendChild(div);
+      });
+      suggestionsEl.style.display = 'block';
+      setStatus(`Found ${matches.length} matching items`);
+    } else {
+      suggestionsEl.style.display = 'none';
+      setStatus('No matching items found', true);
+    }
+  }
+  
+  // Render the shopping list
+  function render() {
+    if (!els.list) return;
+    
+    // Sort items by aisle
+    const sortedItems = [...items].sort((a, b) => {
+      const aisleA = a.aisle || 'Unknown';
+      const aisleB = b.aisle || 'Unknown';
+      
+      // Check if both are numbers or numeric ranges
+      const aIsNumeric = /^\d+(-\d+)?$/.test(aisleA);
+      const bIsNumeric = /^\d+(-\d+)?$/.test(aisleB);
+      
+      // Both numeric - sort numerically
+      if (aIsNumeric && bIsNumeric) {
+        const aNum = parseInt(aisleA.split('-')[0]);
+        const bNum = parseInt(aisleB.split('-')[0]);
+        const aisleCompare = aNum - bNum;
+        if (aisleCompare !== 0) return reverseAisles ? -aisleCompare : aisleCompare;
+        // Same aisle, sort by name
+        return a.name.localeCompare(b.name);
+      }
+      
+      // One is numeric, one is not - numeric comes first
+      if (aIsNumeric) return reverseAisles ? 1 : -1;
+      if (bIsNumeric) return reverseAisles ? -1 : 1;
+      
+      // Both non-numeric - sort alphabetically
+      const aisleCompare = aisleA.localeCompare(aisleB);
+      if (aisleCompare !== 0) return reverseAisles ? -aisleCompare : aisleCompare;
+      // Same aisle, sort by name
+      return a.name.localeCompare(b.name);
+    });
+    
+    // Group items by aisle and render as aisle cards
+    let html = '';
+    if (sortedItems.length > 0) {
+      const groups = [];
+      let currentKey = null;
+      for (const item of sortedItems) {
+        const key = item.aisle || 'Unknown';
+        if (key !== currentKey) {
+          groups.push({ aisle: key, items: [] });
+          currentKey = key;
+        }
+        groups[groups.length - 1].items.push(item);
+      }
+
+      html = groups.map(g => {
+        const label = g.aisle === 'Unknown' ? 'Unknown aisle' : `Aisle ${g.aisle}`;
+        const itemsHtml = g.items.map(item => `
+          <div class="item fade-in" data-id="${item.id}">
+            <span class="item-name editable-name" data-id="${item.id}" title="Click to rename">${escapeHtml(item.name)}</span>
+            <span class="item-aisle editable-aisle" data-id="${item.id}" title="Click to edit aisle">${g.aisle === 'Unknown' ? '?' : escapeHtml(g.aisle)}</span>
+            <button class="remove-btn" data-id="${item.id}" title="Remove item">✕</button>
+          </div>`).join('');
+        return `
+          <div class="aisle-group">
+            <div class="aisle-header">
+              <h3>${escapeHtml(label)}</h3>
+              <span class="count">${g.items.length} item${g.items.length === 1 ? '' : 's'}</span>
+            </div>
+            <div class="aisle-items">${itemsHtml}</div>
+          </div>`;
+      }).join('');
+    }
+
+    els.list.innerHTML = html || `
+      <div class="empty-state">
+        <div class="icon">🛒</div>
+        <div>Your shopping list is empty.</div>
+        <div class="muted" style="margin-top:4px;">Type an item above to get started.</div>
+      </div>`;
+    
+    // Add click handlers to remove buttons
+    document.querySelectorAll('.remove-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation(); // Prevent event bubbling
+        const id = parseInt(btn.getAttribute('data-id'));
+        const item = items.find(i => i.id === id);
+        if (item && confirm(`Remove "${item.name}" from your list?`)) {
+          removeItem(id);
+        }
+      });
+    });
+    
+    // Add click handlers to editable aisle numbers
+    document.querySelectorAll('.editable-aisle').forEach(aisleEl => {
+      aisleEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = parseInt(aisleEl.getAttribute('data-id'));
+        const item = items.find(i => i.id === id);
+        if (!item) return;
+        
+        const currentAisle = item.aisle || 'Unknown';
+        const newAisle = prompt(`Edit aisle for "${item.name}":\n\n(Enter aisle number or name like "Produce", "Bakery", etc.)`, currentAisle === 'Unknown' ? '' : currentAisle);
+        
+        if (newAisle !== null && newAisle.trim() !== '') {
+          updateItemAisle(id, newAisle.trim());
+        }
+      });
+    });
+    
+    document.querySelectorAll('.editable-name').forEach(nameEl => {
+      nameEl.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = parseInt(nameEl.getAttribute('data-id'));
+        startInlineRename(id);
+      });
+    });
+    
+    renderBrowseItems();
+  }
+  
+  async function addItemByName(rawName, options = {}) {
+    const name = (rawName || '').trim();
+    if (!name) {
+      if (options.focusInput !== false) {
+        els.input.focus();
+      }
+      return { added: false, reason: 'empty' };
+    }
+    
+    const existingItem = items.find(item => item.name.toLowerCase() === name.toLowerCase());
+    if (existingItem) {
+      if (options.reportDuplicate !== false) {
+        setStatus(`"${name}" is already in your list`, true);
+      }
+      return { added: false, reason: 'duplicate' };
+    }
+    
+    const foundItem = aisles.find(item => item.item.toLowerCase() === name.toLowerCase());
+    let aisle = foundItem ? foundItem.aisle : null;
+
+    // Fuzzy / keyword inference against the Shoppers' Guide
+    if (!aisle) {
+      const inferred = inferAisle(name);
+      if (inferred) aisle = inferred;
+    }
+
+    if (!aisle) {
+      aisle = 'Unknown';
+    }
+    
+    const newItem = {
+      id: Date.now() + Math.floor(Math.random() * 1000),
+      name,
+      aisle,
+      added: new Date().toISOString()
+    };
+    
+    items.push(newItem);
+    
+    if (options.clearInput) {
+      els.input.value = '';
+    }
+    if (options.hideSuggestions) {
+      document.getElementById('suggestions').style.display = 'none';
+    }
+    if (options.focusInput) {
+      els.input.focus();
+    }
+    
+    saveState();
+    render();
+    
+    try {
+      await upsertMasterItem(name, aisle, {
+        source: options.source || 'shopping-list-entry',
+        overwriteKnownAisle: aisle !== 'Unknown',
+        originalAisle: aisle
+      });
+      await refreshMasterItemsFromDb();
+    } catch (error) {
+      console.error('Error saving item to search database:', error);
+      setStatus(`Added "${name}" to your list, but could not save it for search`, true);
+      return { added: true, item: newItem, warning: 'db-save-failed' };
+    }
+    
+    if (options.scrollToItem !== false) {
+      setTimeout(() => {
+        const newItemEl = document.querySelector(`[data-id="${newItem.id}"]`);
+        if (newItemEl) {
+          newItemEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+    }
+    
+    if (options.reportStatus !== false) {
+      setStatus(`Added: ${name} (Aisle ${aisle})`);
+    }
+    
+    return { added: true, item: newItem };
+  }
+  
+  // Add a new item to the list
+  async function addItem() {
+    await addItemByName(els.input.value, {
+      clearInput: true,
+      hideSuggestions: true,
+      focusInput: true,
+      allowPrompt: true,
+      reportStatus: true,
+      scrollToItem: true,
+      source: 'shopping-list-entry'
+    });
+  }
+  
+  async function addSelectedBrowseItems() {
+    const selectedItems = getSortedBrowseItems().filter(item =>
+      browseSelections.has(item.item.toLowerCase()) && !isItemInCurrentList(item.item)
+    );
+    
+    if (selectedItems.length === 0) {
+      setStatus('Select at least one item from Browse / Select first', true);
+      return;
+    }
+    
+    let addedCount = 0;
+    
+    for (const item of selectedItems) {
+      const result = await addItemByName(item.item, {
+        allowPrompt: false,
+        focusInput: false,
+        reportDuplicate: false,
+        reportStatus: false,
+        scrollToItem: false,
+        source: 'browse-select'
+      });
+      
+      if (result.added) {
+        addedCount++;
+        browseSelections.delete(item.item.toLowerCase());
+      }
+    }
+    
+    renderBrowseItems();
+    setStatus(
+      addedCount > 0
+        ? `${addedCount} selected item${addedCount !== 1 ? 's' : ''} added to your list`
+        : 'Selected items were already in your list'
+    );
+  }
+  
+  // Remove an item by ID
+  function removeItem(id) {
+    const index = items.findIndex(item => item.id === id);
+    if (index !== -1) {
+      const removed = items.splice(index, 1)[0];
+      saveState();
+      render();
+      setStatus(`Removed: ${removed.name}`);
+    }
+  }
+  
+  function startInlineRename(id) {
+    if (editingItemNameId === id) return;
+    if (editingItemNameId !== null) return;
+    
+    const item = items.find(i => i.id === id);
+    const nameEl = document.querySelector(`.editable-name[data-id="${id}"]`);
+    if (!item || !nameEl) return;
+    
+    editingItemNameId = id;
+    nameEl.classList.add('is-editing');
+    nameEl.textContent = '';
+    
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = item.name;
+    input.className = 'editing-name-input';
+    input.setAttribute('aria-label', `Rename ${item.name}`);
+    nameEl.appendChild(input);
+    
+    let finished = false;
+    const finish = async (shouldSave) => {
+      if (finished) return;
+      finished = true;
+      
+      const nextValue = input.value.trim();
+      editingItemNameId = null;
+      
+      if (!shouldSave || !nextValue || nextValue === item.name) {
+        render();
+        return;
+      }
+      
+      await updateItemName(id, nextValue);
+    };
+    
+    input.addEventListener('keydown', async (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        await finish(true);
+      } else if (event.key === 'Escape') {
+        event.preventDefault();
+        await finish(false);
+      }
+    });
+    
+    input.addEventListener('blur', async () => {
+      await finish(true);
+    });
+    
+    input.focus();
+    input.select();
+  }
+  
+  async function updateItemName(id, newName) {
+    const item = items.find(i => i.id === id);
+    if (!item) return false;
+    
+    const trimmedName = (newName || '').trim();
+    if (!trimmedName) {
+      setStatus('Item name cannot be empty', true);
+      render();
+      return false;
+    }
+    
+    const duplicate = items.find(i =>
+      i.id !== id && i.name.toLowerCase() === trimmedName.toLowerCase()
+    );
+    
+    if (duplicate) {
+      setStatus(`"${trimmedName}" is already in your list`, true);
+      render();
+      return false;
+    }
+    
+    const oldName = item.name;
+    item.name = trimmedName;
+    
+    saveState();
+    render();
+    
+    try {
+      await upsertMasterItem(trimmedName, item.aisle || 'Unknown', {
+        source: 'rename-item',
+        overwriteKnownAisle: (item.aisle || 'Unknown') !== 'Unknown',
+        originalAisle: item.aisle || 'Unknown'
+      });
+      await refreshMasterItemsFromDb();
+    } catch (error) {
+      console.error('Error saving renamed item to search database:', error);
+      setStatus(`Renamed "${oldName}" to "${trimmedName}", but could not save it for search`, true);
+      return false;
+    }
+    
+    setStatus(`Renamed "${oldName}" to "${trimmedName}"`);
+    return true;
+  }
+  
+  // Update an item's aisle
+  async function updateItemAisle(id, newAisle) {
+    const item = items.find(i => i.id === id);
+    if (!item) return;
+    
+    const normalizedAisle = normalizeAisle(newAisle);
+    item.aisle = normalizedAisle;
+    
+    // Update the aisles data array
+    const aisleDataItem = aisles.find(a => a.item.toLowerCase() === item.name.toLowerCase());
+    if (aisleDataItem) {
+      aisleDataItem.aisle = normalizedAisle;
+    } else {
+      // If item doesn't exist in aisles data, add it
+      aisles.push({
+        item: item.name,
+        aisle: normalizedAisle,
+        originalAisle: normalizedAisle
+      });
+    }
+    
+    try {
+      await upsertMasterItem(item.name, normalizedAisle, {
+        source: 'aisle-edit',
+        overwriteKnownAisle: true,
+        forceAisle: true,
+        originalAisle: normalizedAisle
+      });
+      await refreshMasterItemsFromDb();
+    } catch (error) {
+      console.error('Error saving aisle update to search database:', error);
+      setStatus(`Updated "${item.name}" in your list, but could not save the aisle change`, true);
+      saveState();
+      render();
+      return;
+    }
+    
+    saveState();
+    render();
+    setStatus(`Updated: ${item.name} moved to Aisle ${normalizedAisle}`);
+  }
+  
+  // Add all items from current shopping list to master list
+  async function addCurrentListToMaster() {
+    if (items.length === 0) {
+      setStatus('Cannot add items: shopping list is empty', true);
+      return;
+    }
+    
+    let addedCount = 0;
+    let updatedCount = 0;
+    
+    for (const shoppingItem of items) {
+      const itemName = shoppingItem.name;
+      const itemAisle = shoppingItem.aisle || 'Unknown';
+
+      try {
+        const result = await upsertMasterItem(itemName, itemAisle, {
+          source: 'manual-sync',
+          overwriteKnownAisle: itemAisle !== 'Unknown',
+          originalAisle: itemAisle
+        });
+        
+        if (result.added) addedCount++;
+        if (result.updated) updatedCount++;
+      } catch (error) {
+        console.error('Error syncing item to search database:', error);
+      }
+    }
+
+    try {
+      await refreshMasterItemsFromDb();
+    } catch (error) {
+      console.error('Error refreshing search database cache:', error);
+    }
+    
+    // Show summary message
+    const messages = [];
+    if (addedCount > 0) {
+      messages.push(`${addedCount} new item${addedCount !== 1 ? 's' : ''} added`);
+    }
+    if (updatedCount > 0) {
+      messages.push(`${updatedCount} item${updatedCount !== 1 ? 's' : ''} updated`);
+    }
+    
+    if (messages.length > 0) {
+      setStatus(`Search database updated: ${messages.join(', ')}.`);
+    } else {
+      setStatus('Search database already had the same items and aisles');
+    }
+  }
+  
+  // Export aisle data as JSON file
+  function exportAisleData() {
+    const dataToExport = aisles.map(item => ({
+      item: item.item,
+      aisle: item.aisle
+    }));
+    
+    const dataStr = JSON.stringify(dataToExport, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'mb_lynn_82_aisles_updated.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    setStatus('Aisle data exported successfully');
+  }
+  
+  // Save current list with a name
+  function saveCurrentList() {
+    if (items.length === 0) {
+      setStatus('Cannot save an empty list', true);
+      return;
+    }
+    
+    const listName = prompt('Enter a name for this list:');
+    if (!listName || !listName.trim()) {
+      return;
+    }
+    
+    const trimmedName = listName.trim();
+    
+    // Get saved lists from localStorage
+    const savedLists = getSavedLists();
+    
+    // Check if name already exists
+    if (savedLists[trimmedName]) {
+      if (!confirm(`A list named "${trimmedName}" already exists. Overwrite it?`)) {
+        return;
+      }
+    }
+    
+    // Save the list
+    savedLists[trimmedName] = {
+      items: items.map(item => ({ ...item })),
+      reverseAisles: reverseAisles,
+      savedAt: new Date().toISOString()
+    };
+    
+    localStorage.setItem('mbSavedLists', JSON.stringify(savedLists));
+    
+    setStatus(`List "${trimmedName}" saved successfully`);
+    renderSavedLists();
+  }
+  
+  // Get all saved lists from localStorage
+  function getSavedLists() {
+    try {
+      const saved = localStorage.getItem('mbSavedLists');
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      console.error('Error loading saved lists:', e);
+      return {};
+    }
+  }
+  
+  // Load a saved list
+  function loadSavedList(listName) {
+    const savedLists = getSavedLists();
+    const savedList = savedLists[listName];
+    
+    if (!savedList) {
+      setStatus(`List "${listName}" not found`, true);
+      return;
+    }
+    
+    if (items.length > 0) {
+      if (!confirm('Loading a saved list will replace your current list. Continue?')) {
+        return;
+      }
+    }
+    
+    // Load the items
+    items = savedList.items.map(item => ({ ...item }));
+    
+    // Load settings
+    if (savedList.reverseAisles !== undefined) {
+      reverseAisles = savedList.reverseAisles;
+      updateReverseOrderButton();
+    }
+    
+    
+    // Save current state and render
+    saveState();
+    render();
+    setStatus(`Loaded list "${listName}"`);
+    
+    // Hide the saved lists panel
+    els.savedListsPanel.style.display = 'none';
+  }
+  
+  // Delete a saved list
+  function deleteSavedList(listName) {
+    if (!confirm(`Are you sure you want to delete the list "${listName}"?`)) {
+      return;
+    }
+    
+    const savedLists = getSavedLists();
+    delete savedLists[listName];
+    localStorage.setItem('mbSavedLists', JSON.stringify(savedLists));
+    
+    setStatus(`List "${listName}" deleted`);
+    renderSavedLists();
+  }
+  
+  // Toggle saved lists panel
+  function toggleSavedListsPanel() {
+    const isVisible = els.savedListsPanel.style.display !== 'none';
+    els.savedListsPanel.style.display = isVisible ? 'none' : 'block';
+    
+    if (!isVisible) {
+      renderSavedLists();
+    }
+  }
+  
+  // Render the saved lists panel
+  function renderSavedLists() {
+    const savedLists = getSavedLists();
+    const listNames = Object.keys(savedLists).sort();
+    
+    if (listNames.length === 0) {
+      els.savedListsContainer.innerHTML = '<p class="muted" style="margin: 0;">No saved lists yet. Save your current list to get started.</p>';
+      return;
+    }
+    
+    let html = '<div style="display: flex; flex-direction: column; gap: 8px;">';
+    
+    listNames.forEach(listName => {
+      const savedList = savedLists[listName];
+      const itemCount = savedList.items ? savedList.items.length : 0;
+      const savedDate = savedList.savedAt ? new Date(savedList.savedAt).toLocaleString() : 'Unknown date';
+      
+      html += `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: white; border-radius: 4px; border: 1px solid #ddd;">
+          <div style="flex: 1;">
+            <div style="font-weight: 500; margin-bottom: 4px;">${escapeHtml(listName)}</div>
+            <div class="muted" style="font-size: 12px;">${itemCount} item${itemCount !== 1 ? 's' : ''} • Saved ${savedDate}</div>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="secondary load-list-btn" data-list-name="${escapeHtml(listName)}" style="padding: 6px 12px; font-size: 13px; min-height: auto;">Load</button>
+            <button class="danger delete-list-btn" data-list-name="${escapeHtml(listName)}" style="padding: 6px 12px; font-size: 13px; min-height: auto;">Delete</button>
+          </div>
+        </div>
+      `;
+    });
+    
+    html += '</div>';
+    els.savedListsContainer.innerHTML = html;
+    
+    // Add event listeners to the buttons
+    document.querySelectorAll('.load-list-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const listName = e.target.getAttribute('data-list-name');
+        if (listName) {
+          loadSavedList(listName);
+        }
+      });
+    });
+    
+    document.querySelectorAll('.delete-list-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const listName = e.target.getAttribute('data-list-name');
+        if (listName) {
+          deleteSavedList(listName);
+        }
+      });
+    });
+  }
+  
+  // Handle file upload
+  function handleFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+      try {
+        let data;
+        
+        // Try to parse as JSON
+        if (file.name.endsWith('.json')) {
+          data = JSON.parse(e.target.result);
+        } 
+        // Try to parse as CSV
+        else if (file.name.endsWith('.csv')) {
+          data = parseCSV(e.target.result);
+        } else {
+          throw new Error('Unsupported file format. Please use .json or .csv');
+        }
+        
+        if (applyData(data)) {
+          setStatus(`Successfully loaded ${data.length} items from ${file.name}`);
+          saveState();
+        }
+      } catch (error) {
+        setStatus(`Error loading file: ${error.message}`, true);
+        console.error('File load error:', error);
+      }
+    };
+    
+    reader.onerror = function() {
+      setStatus('Error reading file', true);
+    };
+    
+    if (file.name.endsWith('.csv')) {
+      reader.readAsText(file);
+    } else {
+      reader.readAsText(file);
+    }
+    
+    // Reset the file input
+    event.target.value = '';
+  }
+  
+  // Parse CSV data
+  function parseCSV(csvText) {
+    const lines = csvText.split('\n').filter(line => line.trim() !== '');
+    if (lines.length < 1) return [];
+    
+    // Try to detect the delimiter
+    const firstLine = lines[0];
+    let delimiter = ',';
+    if (firstLine.includes('\t')) delimiter = '\t';
+    else if (firstLine.includes(';')) delimiter = ';';
+    
+    // Parse headers (first row)
+    const headers = lines[0].split(delimiter).map(h => h.trim().toLowerCase());
+    
+    // Check if we have required columns
+    const hasItem = headers.some(h => h.includes('item') || h.includes('name'));
+    const hasAisle = headers.some(h => h.includes('aisle') || h.includes('section'));
+    
+    if (!hasItem || !hasAisle) {
+      throw new Error('CSV must contain "item" and "aisle" columns');
+    }
+    
+    // Get column indices
+    const itemIndex = headers.findIndex(h => h.includes('item') || h.includes('name'));
+    const aisleIndex = headers.findIndex(h => h.includes('aisle') || h.includes('section'));
+    
+    // Parse data rows
+    return lines.slice(1).map(line => {
+      const values = line.split(delimiter).map(v => v.trim().replace(/^"|"$/g, ''));
+      return {
+        item: values[itemIndex] || '',
+        aisle: values[aisleIndex] || 'Unknown'
+      };
+    }).filter(row => row.item); // Remove empty rows
+  }
+  
+  // Load data from URL
+  async function loadFromUrl() {
+    const url = els.urlInput.value.trim();
+    if (!url) {
+      setStatus('Please enter a URL', true);
+      return;
+    }
+    
+    try {
+      setStatus('Loading data from URL...');
+      
+      const response = await fetch(url, { cache: 'no-cache' });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      let data;
+      
+      if (url.endsWith('.json')) {
+        data = await response.json();
+      } else if (url.endsWith('.csv')) {
+        const csvText = await response.text();
+        data = parseCSV(csvText);
+      } else {
+        // Try to auto-detect format
+        const text = await response.text();
+        try {
+          // Try to parse as JSON
+          data = JSON.parse(text);
+        } catch (e) {
+          // Try to parse as CSV
+          data = parseCSV(text);
+        }
+      }
+      
+      if (applyData(data)) {
+        setStatus(`Successfully loaded ${data.length} items from URL`);
+        saveState();
+        els.urlInput.value = ''; // Clear the URL input
+      }
+    } catch (error) {
+      setStatus(`Error loading from URL: ${error.message}`, true);
+      console.error('URL load error:', error);
+    }
+  }
+  
+  async function getDefaultAisleRows() {
+    try {
+      const response = await fetch(getCurrentLocation().file, { cache: 'no-cache' });
+      if (response.ok) {
+        const data = await response.json();
+        return { rows: data, source: 'JSON file' };
+      }
+    } catch (fetchError) {
+      console.log('Could not load JSON file, trying fallbacks:', fetchError);
+    }
+    
+    const embedded = getCurrentLocation().embedded;
+    if (embedded && embedded.length > 0) {
+      return { rows: embedded, source: 'embedded data' };
+    }
+    
+    try {
+      const savedAisles = localStorage.getItem('mbAisles');
+      if (savedAisles) {
+        const data = JSON.parse(savedAisles);
+        if (data && Array.isArray(data.data)) {
+          return { rows: data.data, source: 'cached aisle data' };
+        }
+      }
+    } catch (error) {
+      console.error('Error reading cached aisle data:', error);
+    }
+    
+    return { rows: [], source: '' };
+  }
+  
+  // Load aisle data from the default location
+  async function loadAisleData(options = {}) {
+    try {
+      setStatus('Loading aisle data...');
+
+      const defaultData = await getDefaultAisleRows();
+      await openMasterDatabase();
+
+      if (defaultData.rows.length > 0) {
+        await seedMasterItems(defaultData.rows, {
+          source: `${getCurrentLocation().id}-${defaultData.source || 'default-data'}`,
+          overwriteKnownAisle: !!options.forceOverwrite,
+          forceAisle: !!options.forceOverwrite
+        });
+      }
+
+      if (!options.forceOverwrite) {
+        await migrateLegacyMasterData();
+      }
+      await refreshMasterItemsFromDb();
+      await applyLocationToCurrentList();
+      await reinferAislesForPastItems();
+
+      if (aisles.length > 0) {
+        setStatus(`Loaded ${aisles.length} items for ${getCurrentLocation().name}`);
+      } else {
+        setStatus('No aisle data available', true);
+      }
+    } catch (error) {
+      console.error('Error loading aisle data:', error);
+      setStatus('Error loading aisle data. Some features may be limited.', true);
+    }
+  }
+
+  // When location changes, re-map aisles on current list items where we have an exact
+  // guide entry for that item in the new location.
+  async function applyLocationToCurrentList() {
+    let changed = 0;
+    for (const it of items) {
+      const match = aisles.find(a => a.item.toLowerCase() === it.name.toLowerCase());
+      if (match && match.aisle && match.aisle !== it.aisle) {
+        it.aisle = match.aisle;
+        changed++;
+      }
+    }
+    if (changed) saveState();
+  }
+
+  async function switchLocation(newId) {
+    if (!LOCATIONS[newId] || newId === currentLocationId) return;
+    currentLocationId = newId;
+    localStorage.setItem('mbLocationId', currentLocationId);
+    updateLocationHeader();
+    await loadAisleData({ forceOverwrite: true });
+    render();
+  }
+
+  function updateLocationHeader() {
+    const loc = getCurrentLocation();
+    if (els.locationSubtitle) els.locationSubtitle.textContent = loc.subtitle;
+    if (els.locationSelect) els.locationSelect.value = currentLocationId;
+  }
+  
+  // Save current state to localStorage
+  function saveState() {
+    try {
+      localStorage.setItem('mbShoppingList', JSON.stringify({
+        items: items,
+        reverseAisles: reverseAisles,
+        version: 2,
+        timestamp: new Date().toISOString()
+      }));
+    } catch (e) {
+      console.error('Error saving state:', e);
+    }
+  }
+  
+  // Load state from localStorage
+  function loadState() {
+    try {
+      const savedData = localStorage.getItem('mbShoppingList');
+      if (savedData) {
+        const data = JSON.parse(savedData);
+        
+        if (data && Array.isArray(data.items)) {
+          // Migrate from version 1 to version 2
+          if (data.version === 1) {
+            items = data.items.map(item => ({
+              ...item,
+              id: item.id || Date.now() + Math.random(),
+              added: item.added || new Date().toISOString()
+            }));
+          } else {
+            items = data.items;
+          }
+          
+          // Load settings
+          if (data.reverseAisles !== undefined) {
+            reverseAisles = data.reverseAisles;
+            updateReverseOrderButton();
+          }
+          
+          
+          render();
+          setStatus(`Loaded ${items.length} items from your last session`);
+        }
+      }
+    } catch (e) {
+      console.error('Error loading saved state:', e);
+      setStatus('Error loading saved data', true);
+    }
+  }
+  
+  // Helper function to escape HTML
+  function escapeHtml(unsafe) {
+    if (!unsafe) return '';
+    return unsafe
+      .toString()
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+  
+  // Initialize the app when the DOM is loaded
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+  </script>
+</body>
+</html>
