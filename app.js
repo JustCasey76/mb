@@ -702,30 +702,34 @@
         <button class="btn sm ghost" type="button" data-del="${esc(n)}" aria-label="Delete ${esc(n)}">${ICON.x}</button>
       </div>`;
     }).join('') : '<div class="g-empty">No saved lists yet.</div>';
-    renderLatest(saved, names[0]);
+    renderLatest(saved);
   }
 
-  // "Latest saved list" card under Add Items — the most recently saved list, one tap to add.
-  let latestName = null;
-  function renderLatest(saved = getSaved(), name = Object.keys(saved).sort((a, b) => String(saved[b].savedAt).localeCompare(String(saved[a].savedAt)))[0]) {
-    const card = $('#latest');
-    const list = name && saved[name];
-    latestName = list ? name : null;
-    card.classList.toggle('show', !!list);
+  // Saved lists as buttons under Add Items — tap one to load it into the list on the right.
+  const LOAD_ICON = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>';
+  function renderLatest(saved = getSaved()) {
+    const names = Object.keys(saved).sort((a, b) => String(saved[b].savedAt).localeCompare(String(saved[a].savedAt)));
+    const wrap = $('#savedQuick');
+    wrap.classList.toggle('show', names.length > 0);
+    if (!names.length) return;
+    const current = [...new Set(state.items.map(i => keyOf(i.name)))].sort().join('|');
+    $('#savedQuickList').innerHTML = names.slice(0, 6).map(n => {
+      const items = (saved[n].items || []).filter(i => i && i.name);
+      const isCurrent = current && [...new Set(items.map(i => keyOf(i.name)))].sort().join('|') === current;
+      return `<button type="button" class="load-btn${isCurrent ? ' current' : ''}" data-quick-load="${esc(n)}">
+        ${LOAD_ICON}<span class="t"><b>${esc(n)}</b><span class="m">${items.length} item${items.length === 1 ? '' : 's'}</span></span>
+        <span class="go">${isCurrent ? '✓ Loaded' : 'Load'}</span></button>`;
+    }).join('');
+  }
+  function loadSaved(name) {
+    const list = getSaved()[name];
     if (!list) return;
-    const items = (list.items || []).filter(i => i && i.name);
-    const inList = new Set(state.items.map(i => keyOf(i.name)));
-    const missing = items.filter(i => !inList.has(keyOf(i.name))).length;
-    const when = list.savedAt ? new Date(list.savedAt).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : '';
-    $('#latestName').textContent = name;
-    $('#latestMeta').textContent = `${items.length} item${items.length === 1 ? '' : 's'}${when ? ' · saved ' + when : ''}`;
-    const SHOW = 10;
-    $('#latestItems').innerHTML = items.slice(0, SHOW).map(i =>
-      `<li${inList.has(keyOf(i.name)) ? ' class="on" title="Already on your list"' : ''}>${esc(i.name)}${i.qty ? ` · ${esc(i.qty)}` : ''}</li>`
-    ).join('') + (items.length > SHOW ? `<li class="more">+${items.length - SHOW} more</li>` : '');
-    const addBtn = $('#latestAdd');
-    addBtn.disabled = missing === 0;
-    $('#latestAddLabel').textContent = missing === 0 ? 'All on your list' : missing === items.length ? `Add ${items.length} to list` : `Add ${missing} missing`;
+    const before = JSON.stringify(state.items);
+    const seen = new Set();
+    state.items = (list.items || []).filter(i => i && i.name).filter(i => { const k = keyOf(i.name); if (seen.has(k)) return false; seen.add(k); return true; })
+      .map(i => ({ id: uid(), name: String(i.name), qty: i.qty || '', checked: false }));
+    save(); render(); renderPreview();
+    toast(`Loaded “${name}” · ${state.items.length} items`, JSON.parse(before).length ? () => { state.items = JSON.parse(before); save(); render(); renderPreview(); } : null);
   }
   function saveCurrent() {
     const name = el.saveName.value.trim();
@@ -854,11 +858,10 @@
       el.savedSheet.showModal();
       if (state.items.length && matchMedia('(pointer: fine)').matches) el.saveName.focus();
     });
-    $('#latestAdd').addEventListener('click', () => {
-      const list = latestName && getSaved()[latestName];
-      if (list) addParsed((list.items || []).filter(i => i && i.name).map(i => ({ name: String(i.name), qty: i.qty || '' })), 'saved');
+    $('#savedQuickList').addEventListener('click', e => {
+      const b = e.target.closest('[data-quick-load]');
+      if (b) loadSaved(b.dataset.quickLoad);
     });
-    $('#latestAll').addEventListener('click', () => { renderSaved(); el.savedSheet.showModal(); });
     el.saveBtn.addEventListener('click', saveCurrent);
     el.saveName.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveCurrent(); } });
     el.savedList.addEventListener('click', e => {

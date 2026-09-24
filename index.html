@@ -116,20 +116,25 @@
   @media (max-width: 900px) { .side { position: static; } }
   .composer { padding: 18px; }
 
-  /* Latest saved list card */
-  .latest { padding: 16px 18px 18px; display: none; position: relative; overflow: hidden; }
-  .latest.show { display: block; animation: rise .3s ease-out both; }
-  .latest::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 5px; background: var(--red); }
-  .latest-kicker { display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3); }
-  .latest-kicker svg { width: 14px; height: 14px; color: var(--red); }
-  .latest h3 { margin: 6px 0 2px; font-family: var(--display); font-weight: 900; font-size: 30px; line-height: .95; text-transform: uppercase; overflow-wrap: break-word; }
-  .latest-meta { font-size: 13px; color: var(--ink-3); }
-  .latest-items { list-style: none; margin: 12px 0 0; padding: 10px 0 0; border-top: 1.5px solid var(--ink); display: flex; flex-wrap: wrap; gap: 6px; }
-  .latest-items li { font-size: 13.5px; padding: 3px 10px; border-radius: 999px; background: var(--paper); border: 1px solid var(--rule-2); color: var(--ink-2); }
-  .latest-items li.on { border-style: dashed; color: var(--ink-3); }
-  .latest-items li.more { background: transparent; border-color: transparent; color: var(--ink-3); padding-left: 2px; }
-  .latest-actions { display: flex; gap: 8px; margin-top: 14px; }
-  .latest-actions .btn.primary { flex: 1; }
+  /* Saved lists: one button each, tap to load it into the list */
+  .saved-quick { display: none; flex-direction: column; gap: 8px; }
+  .saved-quick.show { display: flex; }
+  .saved-quick-label { font-size: 11.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3); margin: 0 2px; }
+  .load-btn {
+    display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+    padding: 12px 14px; min-height: 56px; border-radius: 12px;
+    background: var(--card); border: 1.5px solid var(--rule-2); box-shadow: var(--shadow);
+    transition: border-color .15s, transform .06s;
+  }
+  .load-btn:hover { border-color: var(--ink); }
+  .load-btn:active { transform: translateY(1px); }
+  .load-btn svg { width: 20px; height: 20px; flex: none; color: var(--red); }
+  .load-btn .t { flex: 1; min-width: 0; }
+  .load-btn b { display: block; font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .load-btn span.m { font-size: 13px; color: var(--ink-3); }
+  .load-btn .go { font-size: 13px; font-weight: 700; color: var(--ink-2); white-space: nowrap; }
+  .load-btn.current { border-color: var(--green); }
+  .load-btn.current .go { color: var(--green); }
 
   .label-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 8px; }
   .label-row h2 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 26px; text-transform: uppercase; letter-spacing: .01em; line-height: 1; }
@@ -395,7 +400,7 @@
   @media print {
     @page { margin: .4in; }
     body { background: #fff; color: #000; font-size: 11pt; }
-    .band, header.mast, .composer, .latest, .toolbar, .list-foot, .toast, .empty, dialog, .aisle-btn, .rm { display: none !important; }
+    .band, header.mast, .composer, .saved-quick, .toolbar, .list-foot, .toast, .empty, dialog, .aisle-btn, .rm { display: none !important; }
     main { display: block; padding: 0; max-width: none; }
     .print-head { display: block; border-bottom: 2px solid #000; margin-bottom: 10px; padding-bottom: 4px; }
     .print-head b { font-family: var(--display); font-size: 22pt; text-transform: uppercase; }
@@ -464,22 +469,10 @@
       </div>
     </section>
 
-    <section class="panel latest" id="latest" aria-labelledby="latestName">
-      <div class="latest-kicker">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-        Latest saved list
-      </div>
-      <h3 id="latestName"></h3>
-      <div class="latest-meta" id="latestMeta"></div>
-      <ul class="latest-items" id="latestItems"></ul>
-      <div class="latest-actions">
-        <button class="btn primary" id="latestAdd" type="button">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-          <span id="latestAddLabel">Add to list</span>
-        </button>
-        <button class="btn" id="latestAll" type="button">All saved</button>
-      </div>
-    </section>
+    <nav class="saved-quick" id="savedQuick" aria-label="Saved lists">
+      <div class="saved-quick-label">Saved lists</div>
+      <div id="savedQuickList" style="display:flex;flex-direction:column;gap:8px"></div>
+    </nav>
     </aside>
 
     <section class="list-col" aria-label="Your list, in aisle order">
