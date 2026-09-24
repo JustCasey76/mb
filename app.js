@@ -952,7 +952,7 @@
     if (!code) {
       el.syncBox.innerHTML = `<h3>Sync across devices</h3>
         <p>Pick a private sync code and type the same code on your phone and computer — your saved lists show up on both. Anyone with the code can see those lists, so make it something only you’d guess.</p>
-        <form class="row" id="syncForm"><input class="field" name="code" placeholder="e.g. casey-kitchen" autocomplete="off" autocapitalize="none" spellcheck="false" minlength="4" maxlength="64" />
+        <form class="row" id="syncForm"><input class="field" name="code" placeholder="e.g. blue-pantry-42" autocomplete="off" autocapitalize="none" spellcheck="false" minlength="4" maxlength="64" />
         <button class="btn primary" type="submit" style="flex:none">Turn on</button></form>`;
     } else {
       const when = syncState.last ? new Date(syncState.last).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
