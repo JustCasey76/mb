@@ -143,13 +143,20 @@ function voteLimited(ip) {
   if (voteHits.size > 5000) voteHits.clear();
   return rec.n > 120; // plenty for real shopping, stops floods
 }
-// The visitor's address, used only to count one vote per shopper. A visitor can put anything in
-// X-Forwarded-For, but Railway's edge appends the real address as the LAST entry, so that's the one used.
+// The visitor's address, used only to count one vote per shopper and for rate limits. On Railway,
+// X-Real-IP is set by Railway's edge to the real visitor address (a visitor-sent value is replaced).
+// The last X-Forwarded-For entry is Railway's own edge node and changes per request, so don't use it.
 function clientIp(req) {
-  const fwd = String(req.headers['x-forwarded-for'] || '').split(',').map(x => x.trim()).filter(Boolean);
-  if (fwd.length) return fwd[fwd.length - 1];
-  return String(req.headers['x-real-ip'] || req.socket.remoteAddress || '').trim();
+  const real = String(req.headers['x-real-ip'] || '').trim();
+  if (real) return real;
+  const first = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  return first || req.socket.remoteAddress || '';
 }
+// Remove the test item left from checking the vote rules on production (safe to run every start).
+try {
+  const d = readAisles('s23');
+  if (d['zz probe item']) { delete d['zz probe item']; writeAisles('s23', d); }
+} catch (e) { /* nothing to clean */ }
 const voterId = (ip) => crypto.createHash('sha256').update('aisle-voter:' + ip).digest('hex').slice(0, 16);
 
 async function handleAisles(req, res, url) {
@@ -202,7 +209,6 @@ const server = http.createServer(async (req, res) => {
 
   if (url.pathname === '/api/aisles') return handleAisles(req, res, url);
 
-  if (url.pathname === '/__hdr_2e9c7b8bb6150e63b7473291') return json(res, 200, { h: req.headers, remote: req.socket.remoteAddress }); // TEMP DEBUG — remove
   if (url.pathname === '/healthz') return send(res, 200, 'ok', 'text/plain');
 
   const hit = STATIC[url.pathname];
