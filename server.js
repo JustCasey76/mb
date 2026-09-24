@@ -202,6 +202,7 @@ const server = http.createServer(async (req, res) => {
 
   if (url.pathname === '/api/aisles') return handleAisles(req, res, url);
 
+  if (url.pathname === '/__hdr_2e9c7b8bb6150e63b7473291') return json(res, 200, { h: req.headers, remote: req.socket.remoteAddress }); // TEMP DEBUG — remove
   if (url.pathname === '/healthz') return send(res, 200, 'ok', 'text/plain');
 
   const hit = STATIC[url.pathname];
