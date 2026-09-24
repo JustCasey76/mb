@@ -360,6 +360,7 @@
   let shownSections = new Set(); // only newly-appearing aisle cards animate in
   let previewKeys = new Set();
   function render() {
+    renderLatest();
     const total = state.items.length;
     const done = state.items.filter(i => i.checked).length;
     el.progCount.innerHTML = `${done}<span>/${total}</span>`;
@@ -701,6 +702,30 @@
         <button class="btn sm ghost" type="button" data-del="${esc(n)}" aria-label="Delete ${esc(n)}">${ICON.x}</button>
       </div>`;
     }).join('') : '<div class="g-empty">No saved lists yet.</div>';
+    renderLatest(saved, names[0]);
+  }
+
+  // "Latest saved list" card under Add Items — the most recently saved list, one tap to add.
+  let latestName = null;
+  function renderLatest(saved = getSaved(), name = Object.keys(saved).sort((a, b) => String(saved[b].savedAt).localeCompare(String(saved[a].savedAt)))[0]) {
+    const card = $('#latest');
+    const list = name && saved[name];
+    latestName = list ? name : null;
+    card.classList.toggle('show', !!list);
+    if (!list) return;
+    const items = (list.items || []).filter(i => i && i.name);
+    const inList = new Set(state.items.map(i => keyOf(i.name)));
+    const missing = items.filter(i => !inList.has(keyOf(i.name))).length;
+    const when = list.savedAt ? new Date(list.savedAt).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : '';
+    $('#latestName').textContent = name;
+    $('#latestMeta').textContent = `${items.length} item${items.length === 1 ? '' : 's'}${when ? ' · saved ' + when : ''}`;
+    const SHOW = 10;
+    $('#latestItems').innerHTML = items.slice(0, SHOW).map(i =>
+      `<li${inList.has(keyOf(i.name)) ? ' class="on" title="Already on your list"' : ''}>${esc(i.name)}${i.qty ? ` · ${esc(i.qty)}` : ''}</li>`
+    ).join('') + (items.length > SHOW ? `<li class="more">+${items.length - SHOW} more</li>` : '');
+    const addBtn = $('#latestAdd');
+    addBtn.disabled = missing === 0;
+    $('#latestAddLabel').textContent = missing === 0 ? 'All on your list' : missing === items.length ? `Add ${items.length} to list` : `Add ${missing} missing`;
   }
   function saveCurrent() {
     const name = el.saveName.value.trim();
@@ -829,6 +854,11 @@
       el.savedSheet.showModal();
       if (state.items.length && matchMedia('(pointer: fine)').matches) el.saveName.focus();
     });
+    $('#latestAdd').addEventListener('click', () => {
+      const list = latestName && getSaved()[latestName];
+      if (list) addParsed((list.items || []).filter(i => i && i.name).map(i => ({ name: String(i.name), qty: i.qty || '' })), 'saved');
+    });
+    $('#latestAll').addEventListener('click', () => { renderSaved(); el.savedSheet.showModal(); });
     el.saveBtn.addEventListener('click', saveCurrent);
     el.saveName.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveCurrent(); } });
     el.savedList.addEventListener('click', e => {
@@ -854,7 +884,10 @@
     });
 
     // Keep tabs/devices in sync if the list is open twice.
-    window.addEventListener('storage', e => { if (e.key === STATE_KEY && load()) { renderStore(); render(); } });
+    window.addEventListener('storage', e => {
+      if (e.key === STATE_KEY && load()) { renderStore(); render(); }
+      if (e.key === SAVED_KEY) renderLatest();
+    });
   }
 
   async function init() {
