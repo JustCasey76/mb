@@ -86,9 +86,23 @@
     }
 
     // Everyday-word aliases → first guide line this store actually has.
+    // If this store words a line differently ("Milk: Fresh" vs "Milk: Fluid", "Windshield Washer"),
+    // fall back to the store's default line for that heading, then to a line sharing the first words.
+    const resolveTarget = (target) => {
+      const exact = byName.get(target.toLowerCase());
+      if (exact) return exact;
+      const head = tokenize(target.split(':')[0]);
+      const viaHead = defaultOf.get(head.join(' '));
+      if (viaHead) return viaHead;
+      if (head.length >= 2) {
+        const pre = entries.filter(e => e.heads.some(h => h.slice(0, 2).join(' ') === head.slice(0, 2).join(' ')));
+        if (pre.length === 1) return pre[0];
+      }
+      return null;
+    };
     const seen = new Set();
     for (const [target, words] of Object.entries(ALIASES)) {
-      const e = byName.get(target.toLowerCase());
+      const e = resolveTarget(target);
       if (!e) continue;
       for (const w of words.split(',')) {
         const t = tokenize(w);
@@ -147,35 +161,43 @@
   // ────────────────────────────── Sections & walking order ──────────────────────────────
   // The PDF says which aisle each item is in, but not the path between departments, so the
   // walk is: front-of-store departments → numbered aisles → back-wall departments → checkout.
-  const DEPTS = {
-    'front corner':       { key: 'bakery', word: 'Bakery', kicker: 'Front corner', rank: 10 },
-    'bakery case':        { key: 'bakery', word: 'Bakery', kicker: 'Front corner', rank: 10 },
-    'produce':            { key: 'produce', word: 'Produce', kicker: 'Fresh', rank: 20 },
-    'produce corner':     { key: 'produce-corner', word: 'Produce corner', kicker: 'Ice cream', rank: 22 },
-    'deli/fish':          { key: 'deli', word: 'Deli & Fish', kicker: 'Counter', rank: 30 },
-    'deli':               { key: 'deli', word: 'Deli & Fish', kicker: 'Counter', rank: 30 },
-    'cheese case':        { key: 'cheese', word: 'Cheese case', kicker: 'Specialty', rank: 32 },
-    "markets kitchen":    { key: 'kitchen', word: "Market's Kitchen", kicker: 'Fresh pizza', rank: 34 },
-    'dairy aisle':        { key: 'dairy', word: 'Dairy', kicker: 'Aisle', rank: 40 },
-    'meat':               { key: 'meat', word: 'Meat', kicker: 'Fresh', rank: 300 },
-    'above meat case':    { key: 'above-meat', word: 'Above meat case', kicker: 'Back wall', rank: 305 },
-    'back main aisle':    { key: 'back-main', word: 'Back main aisle', kicker: 'Back wall', rank: 310 },
-    'above froz seafood': { key: 'above-seafood', word: 'Above frozen seafood', kicker: 'Back wall', rank: 320 },
-    'freezer wall':       { key: 'freezer-wall', word: 'Freezer wall', kicker: 'Ice cream', rank: 330 },
-    'frozen corner':      { key: 'frozen-corner', word: 'Frozen corner', kicker: 'Cones', rank: 335 },
-    'registers':          { key: 'checkout', word: 'Checkout', kicker: 'Registers', rank: 900 },
-    'checkout':           { key: 'checkout', word: 'Checkout', kicker: 'Registers', rank: 900 }
-  };
+  // Stores word departments many ways ("Produce Wall", "Rack Produce", "Front at Register #13"),
+  // so group by keyword. First match wins; rank is the walking order.
+  const DEPT_RULES = [
+    [/produce corner/,                                   { key: 'produce-corner', word: 'Produce corner', kicker: 'Ice cream', rank: 22 }],
+    [/\bi ?c corner|ice cream|freezer wall|frozen corner/, { key: 'ice-cream', word: 'Ice cream', kicker: 'Freezer', rank: 335 }],
+    [/bakery|front corner/,                              { key: 'bakery', word: 'Bakery', kicker: 'Front corner', rank: 10 }],
+    [/floral|flower/,                                    { key: 'floral', word: 'Floral', kicker: 'Dept', rank: 15 }],
+    [/produce/,                                          { key: 'produce', word: 'Produce', kicker: 'Fresh', rank: 20 }],
+    [/shrimp|froz(en)? ?(fish|seafood)|fzn/,             { key: 'frozen-seafood', word: 'Frozen seafood', kicker: 'Case', rank: 320 }],
+    [/deli|fish|seafood|sub shop|sushi/,                 { key: 'deli', word: 'Deli & Fish', kicker: 'Counter', rank: 30 }],
+    [/cheese/,                                           { key: 'cheese', word: 'Cheese case', kicker: 'Specialty', rank: 32 }],
+    [/kitchen|cafe|café/,                                { key: 'kitchen', word: "Market's Kitchen", kicker: 'Prepared', rank: 34 }],
+    [/dairy/,                                            { key: 'dairy', word: 'Dairy', kicker: 'Aisle', rank: 40 }],
+    [/goya/,                                             { key: 'goya', word: 'Goya corner', kicker: 'Corner', rank: 45 }],
+    [/front main|front aisle|front wall|^front$|entrance/, { key: 'front-main', word: 'Front main aisle', kicker: 'Front', rank: 8 }],
+    [/above meat|hot dog/,                               { key: 'above-meat', word: 'Above meat case', kicker: 'Back wall', rank: 305 }],
+    [/meat/,                                             { key: 'meat', word: 'Meat', kicker: 'Fresh', rank: 300 }],
+    [/back main|back aisle|^back$/,                      { key: 'back-main', word: 'Back main aisle', kicker: 'Back wall', rank: 310 }],
+    [/freezer|frozen/,                                   { key: 'freezer', word: 'Freezers', kicker: 'Frozen', rank: 330 }],
+    [/chip/,                                             { key: 'chips', word: 'Chip area', kicker: 'Snacks', rank: 480 }],
+    [/soda/,                                             { key: 'soda', word: 'Soda corner', kicker: 'Drinks', rank: 482 }],
+    [/beer|wine/,                                        { key: 'beer', word: 'Beer & wine', kicker: 'Dept', rank: 485 }],
+    [/regist|check ?-?out|courtesy|cust\.? ?(omer)? ?serv|\breg\b|booth/, { key: 'checkout', word: 'Checkout', kicker: 'Registers', rank: 900 }]
+  ];
   function sectionOf(raw) {
-    const s = String(raw || '').trim();
-    if (!s) return UNKNOWN;
+    const s = String(raw || '').replace(/\s+/g, ' ').trim();
+    if (!s || /^n\/?a$/i.test(s)) return UNKNOWN;
     const range = s.match(/^(?:aisles?\s*)?(\d+)\s*(?:&|-|–|and|to)\s*(\d+)$/i);
     if (range) return { key: `a${range[1]}-${range[2]}`, num: `${range[1]}–${range[2]}`, kicker: 'Aisles', rank: 100 + +range[1] + 0.5 };
     const single = s.match(/^(?:aisle\s*)?(\d+)\b/i);
     if (single) return { key: `a${single[1]}`, num: single[1], kicker: 'Aisle', rank: 100 + +single[1] };
-    const norm = s.toLowerCase().replace(/['’]/g, '').replace(/\s+dept\.?$|\s+department$/, '').trim();
-    if (DEPTS[norm]) return { ...DEPTS[norm] };
-    return { key: 'x-' + norm.replace(/[^a-z0-9]+/g, '-'), word: s, kicker: 'Custom', rank: 500 };
+    const norm = s.toLowerCase().replace(/['’#.]/g, '').replace(/\s+/g, ' ');
+    // "Back of Aisle 12", "End of Aisle 17", "Top of Aisle 10 & 11", "Back of 18 & 19" → that aisle
+    const inAisle = norm.match(/aisle ?(\d+)/) || norm.match(/(?:back|end|top|front)(?: end)?(?: of)? (\d+)/);
+    if (inAisle) return { key: `a${inAisle[1]}`, num: inAisle[1], kicker: 'Aisle', rank: 100 + +inAisle[1] };
+    for (const [re, sec] of DEPT_RULES) if (re.test(norm)) return { ...sec };
+    return { key: 'x-' + norm.replace(/[^a-z0-9]+/g, '-'), word: s, kicker: 'Spot', rank: 500 };
   }
   const UNKNOWN = { key: '?', word: '?', kicker: 'Needs an aisle', rank: -1, unknown: true };
   const aisleText = (raw) => { const s = sectionOf(raw); return s.num ? `${s.kicker} ${s.num}` : s.word; };
@@ -296,7 +318,9 @@
 
   // ────────────────────────────── DOM refs ──────────────────────────────
   const el = {
-    seg: $('#storeSeg'), addr: $('#storeAddr'),
+    storeBtn: $('#storeBtn'), storeName: $('#storeName'), addr: $('#storeAddr'),
+    storeSheet: $('#storeSheet'), storeFilter: $('#storeFilter'), nearBtn: $('#nearBtn'), storeList: $('#storeList'),
+    syncBox: $('#syncBox'), syncHint: $('#syncHint'),
     paste: $('#paste'), preview: $('#preview'), previewList: $('#previewList'), previewCount: $('#previewCount'), previewMatched: $('#previewMatched'),
     addBtn: $('#addBtn'), addLabel: $('#addLabel'), guideBtn: $('#guideBtn'),
     regulars: $('#regulars'), regularChips: $('#regularChips'),
@@ -319,13 +343,65 @@
 
   // ────────────────────────────── Rendering ──────────────────────────────
   function renderStore() {
-    el.seg.innerHTML = Object.values(STORES).map(s =>
-      `<button type="button" data-store="${s.id}" aria-pressed="${s.id === state.storeId}">${esc(s.name)} <small>#${esc(s.number)}</small></button>`
-    ).join('');
     const s = STORES[state.storeId];
+    el.storeName.innerHTML = `${esc(s.name)} <small>#${esc(s.number)}</small>`;
     el.addr.textContent = s.address;
     el.printTitle.textContent = `Market Basket ${s.name} #${s.number}`;
     document.title = `Aisle List — ${s.name} #${s.number}`;
+  }
+
+  // ────────────────────────────── Store picker ──────────────────────────────
+  let myPos = null;
+  function milesTo(st) {
+    if (!myPos || typeof st.lat !== 'number') return null;
+    const R = 3958.8, rad = Math.PI / 180;
+    const dLat = (st.lat - myPos.lat) * rad, dLng = (st.lng - myPos.lng) * rad;
+    const h = Math.sin(dLat / 2) ** 2 + Math.cos(myPos.lat * rad) * Math.cos(st.lat * rad) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(h));
+  }
+  function storeRow(st) {
+    const d = milesTo(st);
+    return `<button type="button" class="store-row${st.id === state.storeId ? ' current' : ''}" data-pick-store="${st.id}">
+      <span class="num">${esc(st.number)}</span>
+      <span><b>${esc(st.name)}, ${esc(st.state)}</b><span class="a">${esc(st.address.split(',')[0])}</span></span>
+      <span class="dist">${st.id === state.storeId ? '✓ Current' : d != null ? `${d < 10 ? d.toFixed(1) : Math.round(d)} mi` : ''}</span>
+    </button>`;
+  }
+  function renderStoreList() {
+    const q = el.storeFilter.value.trim().toLowerCase().replace(/^#/, '');
+    let all = Object.values(STORES);
+    if (q) all = all.filter(st => st.number === q || `${st.name} ${st.state} ${st.address}`.toLowerCase().includes(q));
+    let html = '';
+    if (myPos) {
+      all.sort((a, b) => milesTo(a) - milesTo(b));
+      html = all.map(storeRow).join('');
+    } else {
+      all.sort((a, b) => (q && (b.number === q) - (a.number === q)) || a.name.localeCompare(b.name) || a.number - b.number);
+      const recent = q ? [] : (state.recentStores || []).map(id => STORES[id]).filter(Boolean);
+      if (recent.length) html += '<div class="store-group">Recent</div>' + recent.map(storeRow).join('') + '<div class="store-group">All stores A–Z</div>';
+      html += all.map(storeRow).join('');
+    }
+    el.storeList.innerHTML = html || '<div class="g-empty">No store matches that. Try a town name or store number.</div>';
+  }
+  function openStorePicker() {
+    el.storeFilter.value = '';
+    renderStoreList();
+    el.storeSheet.showModal();
+    if (matchMedia('(pointer: fine)').matches) el.storeFilter.focus();
+  }
+  function findNearMe() {
+    if (!navigator.geolocation) return toast('This browser can’t share your location');
+    el.nearBtn.disabled = true;
+    navigator.geolocation.getCurrentPosition(p => {
+      el.nearBtn.disabled = false;
+      myPos = { lat: p.coords.latitude, lng: p.coords.longitude };
+      el.storeFilter.value = '';
+      renderStoreList();
+      el.storeList.scrollTop = 0;
+    }, () => {
+      el.nearBtn.disabled = false;
+      toast('Location is off — search by town or store number instead');
+    }, { timeout: 10000, maximumAge: 600000 });
   }
 
   function groups() {
@@ -573,6 +649,7 @@
   function switchStore(id) {
     if (!STORES[id] || id === state.storeId) return;
     state.storeId = id;
+    state.recentStores = [id, ...(state.recentStores || []).filter(x => x !== id)].slice(0, 4);
     save();
     renderStore(); render(); renderPreview();
     if (el.guideSheet.open) renderGuide();
@@ -658,7 +735,8 @@
   function renderGuide() {
     const s = STORES[state.storeId];
     const idx = idxFor(state.storeId);
-    el.guideSub.textContent = `${s.name} #${s.number} · ${s.address} · ${idx.entries.length} entries`;
+    el.guideSub.innerHTML = `${esc(s.name)} #${esc(s.number)} · ${idx.entries.length} entries`
+      + (s.pdf ? ` · <a href="${esc(s.pdf)}" target="_blank" rel="noopener">View the store’s PDF</a>` : '');
     const q = el.guideFilter.value.trim().toLowerCase();
     const inList = new Set(state.items.map(i => keyOf(i.name)));
     const rows = idx.entries
@@ -685,8 +763,91 @@
   }
 
   // ────────────────────────────── Saved lists ──────────────────────────────
-  function getSaved() { try { return JSON.parse(localStorage.getItem(SAVED_KEY) || '{}') || {}; } catch (e) { return {}; } }
-  function putSaved(v) { try { localStorage.setItem(SAVED_KEY, JSON.stringify(v)); } catch (e) { toast('Couldn’t save — storage is full'); } }
+  // Saved lists live in this browser and, with a sync code, on the Aisle List server so they
+  // follow you to every device. Deleted lists are kept as { deleted, savedAt } markers so a list
+  // removed on one device doesn't come back from another.
+  const SYNC_KEY = 'mb2.syncCode';
+  const stampOf = (v) => Date.parse(v && v.savedAt) || 0;
+  function getSavedRaw() { try { return JSON.parse(localStorage.getItem(SAVED_KEY) || '{}') || {}; } catch (e) { return {}; } }
+  function getSaved() {
+    const raw = getSavedRaw(), out = {};
+    for (const [k, v] of Object.entries(raw)) if (v && !v.deleted) out[k] = v;
+    return out;
+  }
+  function putSaved(v) {
+    const raw = getSavedRaw(), now = new Date().toISOString(), next = {};
+    for (const [k, old] of Object.entries(raw)) {
+      if (!(k in v)) next[k] = old && old.deleted ? old : { deleted: true, savedAt: now };
+    }
+    for (const [k, val] of Object.entries(v)) {
+      const old = raw[k];
+      const changed = !old || old.deleted || JSON.stringify(old.items) !== JSON.stringify(val.items);
+      // a restored (older) copy must still win over the server's newer one, so give it a fresh time
+      next[k] = changed && old && stampOf(val) <= stampOf(old) ? { ...val, savedAt: now } : val;
+    }
+    try { localStorage.setItem(SAVED_KEY, JSON.stringify(next)); } catch (e) { toast('Couldn’t save — storage is full'); }
+    scheduleSync();
+  }
+  const getSyncCode = () => { try { return localStorage.getItem(SYNC_KEY) || ''; } catch (e) { return ''; } };
+  let syncTimer = null, syncState = { busy: false, error: '', last: 0 };
+  function scheduleSync() { clearTimeout(syncTimer); if (getSyncCode()) syncTimer = setTimeout(syncNow, 400); }
+  async function syncNow() {
+    const code = getSyncCode();
+    if (!code || syncState.busy) return false;
+    syncState.busy = true; renderSync();
+    try {
+      const r = await fetch('/api/lists', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-Sync-Code': code },
+        body: JSON.stringify({ lists: getSavedRaw() })
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.error || `Sync failed (${r.status})`);
+      localStorage.setItem(SAVED_KEY, JSON.stringify(data.lists || {}));
+      syncState = { busy: false, error: '', last: Date.now() };
+      renderSaved(); render();
+      return true;
+    } catch (e) {
+      syncState = { ...syncState, busy: false, error: navigator.onLine === false ? 'You’re offline — will sync when you’re back.' : (e.message || 'Couldn’t reach the server') };
+      renderSync();
+      return false;
+    }
+  }
+  async function startSync(code) {
+    code = String(code || '').trim();
+    if (code.length < 4) { toast('Use at least 4 characters for your sync code'); return; }
+    localStorage.setItem(SYNC_KEY, code);
+    const before = Object.keys(getSaved()).length;
+    const ok = await syncNow();
+    if (ok) {
+      const after = Object.keys(getSaved()).length;
+      toast(after > before ? `Synced — ${after - before} list${after - before === 1 ? '' : 's'} came from your other devices` : 'Sync is on for this device');
+    }
+  }
+  function stopSync() {
+    localStorage.removeItem(SYNC_KEY);
+    syncState = { busy: false, error: '', last: 0 };
+    renderSaved();
+    toast('Sync is off on this device (your lists stay here)');
+  }
+  function renderSync() {
+    const code = getSyncCode();
+    el.syncBox.classList.toggle('on', !!code);
+    if (!code) {
+      el.syncBox.innerHTML = `<h3>Sync across devices</h3>
+        <p>Pick a private sync code and type the same code on your phone and computer — your saved lists show up on both. Anyone with the code can see those lists, so make it something only you’d guess.</p>
+        <form class="row" id="syncForm"><input class="field" name="code" placeholder="e.g. casey-kitchen" autocomplete="off" autocapitalize="none" spellcheck="false" minlength="4" maxlength="64" />
+        <button class="btn primary" type="submit" style="flex:none">Turn on</button></form>`;
+    } else {
+      const when = syncState.last ? new Date(syncState.last).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
+      el.syncBox.innerHTML = `<h3>✓ Syncing as “${esc(code)}”</h3>
+        <p>Use this same code on your other devices to see these lists there.</p>
+        <div class="row"><button class="btn sm" type="button" data-sync-now>${syncState.busy ? 'Syncing…' : 'Sync now'}</button>
+        <button class="btn sm ghost" type="button" data-sync-stop>Turn off on this device</button></div>
+        <div class="sync-status">${syncState.error ? esc(syncState.error) : when ? 'Last synced ' + esc(when) : ''}</div>`;
+    }
+    el.syncHint.hidden = !!code;
+  }
   function renderSaved() {
     const saved = getSaved();
     const names = Object.keys(saved).sort((a, b) => String(saved[b].savedAt).localeCompare(String(saved[a].savedAt)));
@@ -703,6 +864,7 @@
       </div>`;
     }).join('') : '<div class="g-empty">No saved lists yet.</div>';
     renderLatest(saved);
+    renderSync();
   }
 
   // Saved lists as buttons under Add Items — tap one to load it into the list on the right.
@@ -710,8 +872,9 @@
   function renderLatest(saved = getSaved()) {
     const names = Object.keys(saved).sort((a, b) => String(saved[b].savedAt).localeCompare(String(saved[a].savedAt)));
     const wrap = $('#savedQuick');
-    wrap.classList.toggle('show', names.length > 0);
-    if (!names.length) return;
+    wrap.classList.toggle('show', names.length > 0 || !getSyncCode());
+    el.syncHint.hidden = !!getSyncCode();
+    if (!names.length) { $('#savedQuickList').innerHTML = ''; return; }
     const current = [...new Set(state.items.map(i => keyOf(i.name)))].sort().join('|');
     $('#savedQuickList').innerHTML = names.slice(0, 6).map(n => {
       const items = (saved[n].items || []).filter(i => i && i.name);
@@ -775,7 +938,15 @@
     el.addBtn.addEventListener('click', addFromBox);
     el.guideBtn.addEventListener('click', openGuide);
 
-    el.seg.addEventListener('click', e => { const b = e.target.closest('[data-store]'); if (b) switchStore(b.dataset.store); });
+    el.storeBtn.addEventListener('click', openStorePicker);
+    el.storeFilter.addEventListener('input', renderStoreList);
+    el.nearBtn.addEventListener('click', findNearMe);
+    el.storeList.addEventListener('click', e => {
+      const b = e.target.closest('[data-pick-store]');
+      if (!b) return;
+      el.storeSheet.close();
+      switchStore(b.dataset.pickStore);
+    });
 
     el.regularChips.addEventListener('click', e => {
       const b = e.target.closest('[data-regular]');
@@ -823,7 +994,7 @@
     });
 
     // Sheets: close buttons + click on backdrop
-    for (const d of [el.aisleSheet, el.guideSheet, el.savedSheet]) {
+    for (const d of [el.aisleSheet, el.guideSheet, el.savedSheet, el.storeSheet]) {
       d.addEventListener('click', e => {
         if (e.target.closest('[data-close]') || e.target === d) d.close();
       });
@@ -862,6 +1033,15 @@
       const b = e.target.closest('[data-quick-load]');
       if (b) loadSaved(b.dataset.quickLoad);
     });
+    el.syncHint.addEventListener('click', () => { renderSaved(); el.savedSheet.showModal(); setTimeout(() => el.syncBox.querySelector('input')?.focus(), 50); });
+    el.syncBox.addEventListener('submit', e => { e.preventDefault(); startSync(new FormData(e.target).get('code')); });
+    el.syncBox.addEventListener('click', e => {
+      if (e.target.closest('[data-sync-now]')) syncNow();
+      if (e.target.closest('[data-sync-stop]')) stopSync();
+    });
+    // pick up changes made on your other devices when you come back to the app
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') syncNow(); });
+    window.addEventListener('online', () => syncNow());
     el.saveBtn.addEventListener('click', saveCurrent);
     el.saveName.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveCurrent(); } });
     el.savedList.addEventListener('click', e => {
@@ -900,6 +1080,7 @@
     wire();
     render();
     renderPreview();
+    if (getSyncCode()) syncNow();
   }
 
   // Exposed for quick testing from the console.

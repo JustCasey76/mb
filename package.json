@@ -1,0 +1,11 @@
+{
+  "name": "aisle-list",
+  "private": true,
+  "description": "Market Basket aisle-sorted shopping list with saved lists synced across devices",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

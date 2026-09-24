@@ -1,6 +1,0 @@
-# Railway terminates HTTPS at its edge and sends plain HTTP to the port in $PORT.
-:{$PORT:8080}
-
-root * /app
-try_files {path} /index.html
-file_server
