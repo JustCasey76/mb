@@ -397,6 +397,7 @@
     storeBtn: $('#storeBtn'), storeName: $('#storeName'), addr: $('#storeAddr'),
     storeSheet: $('#storeSheet'), storeFilter: $('#storeFilter'), nearBtn: $('#nearBtn'), storeList: $('#storeList'),
     syncBox: $('#syncBox'), syncHint: $('#syncHint'),
+    listSearch: $('#listSearch'), searchInput: $('#listSearchInput'), searchMeta: $('#listSearchMeta'), searchClear: $('#listSearchClear'),
     paste: $('#paste'), preview: $('#preview'), previewList: $('#previewList'), previewCount: $('#previewCount'), previewMatched: $('#previewMatched'),
     addBtn: $('#addBtn'), addLabel: $('#addLabel'), guideBtn: $('#guideBtn'),
     regulars: $('#regulars'), regularChips: $('#regularChips'),
@@ -510,6 +511,21 @@
   }
 
   let shownSections = new Set(); // only newly-appearing aisle cards animate in
+  // Search the active list: every word typed must appear in the item (or its amount).
+  let listQuery = '';
+  const queryWords = () => listQuery.toLowerCase().split(/\s+/).filter(Boolean);
+  function matchesQuery(it) {
+    const words = queryWords();
+    if (!words.length) return true;
+    const hay = `${it.name} ${it.qty || ''}`.toLowerCase();
+    return words.every(w => hay.includes(w));
+  }
+  function highlight(text) {
+    const words = queryWords();
+    if (!words.length) return esc(text);
+    const re = new RegExp('(' + words.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')', 'gi');
+    return String(text).split(re).map((part, i) => i % 2 ? `<mark>${esc(part)}</mark>` : esc(part)).join('');
+  }
   let previewKeys = new Set();
   function render() {
     renderLatest();
@@ -522,6 +538,8 @@
     el.orderLabel.textContent = state.prefs.reverse ? 'Back → front' : 'Front → back';
     el.hideBtn.setAttribute('aria-pressed', state.prefs.hideDone);
 
+    el.listSearch.classList.toggle('show', total > 0);
+    el.listSearch.classList.toggle('has-q', !!listQuery);
     if (!total) {
       el.sections.innerHTML = `
         <div class="empty">
@@ -537,9 +555,14 @@
     const gs = groups();
     let html = '';
     let shown = 0;
+    let hits = 0;
+    const searching = queryWords().length > 0;
     for (const g of gs) {
       const left = g.items.filter(i => !i.checked).length;
-      const visible = state.prefs.hideDone ? g.items.filter(i => !i.checked) : g.items;
+      // while searching, show checked matches too so you can find and un-check them
+      const visible = searching ? g.items.filter(matchesQuery)
+        : state.prefs.hideDone ? g.items.filter(i => !i.checked) : g.items;
+      hits += searching ? visible.length : 0;
       if (!visible.length) continue;
       shown++;
       const allDone = left === 0;
@@ -560,7 +583,14 @@
           </div>
         </article>`;
     }
-    if (!shown) html = `<div class="empty"><div class="big">All in the cart</div><p>Every item is checked off. Turn off “Hide done” to see them.</p></div>`;
+    if (searching) {
+      el.searchMeta.textContent = `${hits} of ${total}`;
+      if (!hits) html = `<div class="search-empty">No <b>“${esc(listQuery.trim())}”</b> on your list.
+        <div><button class="btn sm" type="button" data-add-search>+ Add “${esc(listQuery.trim())}” to the list</button></div></div>`;
+    } else {
+      el.searchMeta.textContent = '';
+      if (!shown) html = `<div class="empty"><div class="big">All in the cart</div><p>Every item is checked off. Turn off “Hide done” to see them.</p></div>`;
+    }
     el.sections.innerHTML = html;
     shownSections = new Set(gs.map(g => g.sec.key));
 
@@ -580,7 +610,7 @@
     return `
       <li class="item${it.checked ? ' checked' : ''}" data-id="${it.id}">
         <button class="check" type="button" role="checkbox" aria-checked="${it.checked}" aria-label="${esc(it.name)}" data-act="toggle"><span class="box">${ICON.check}</span></button>
-        <div class="name" data-act="rename">${esc(it.name)}${it.qty ? `<span class="qty">${esc(it.qty)}</span>` : ''}</div>
+        <div class="name" data-act="rename">${highlight(it.name)}${it.qty ? `<span class="qty">${highlight(it.qty)}</span>` : ''}</div>
         <button class="aisle-btn${need ? ' need' : ''}" type="button" data-act="aisle" title="${esc(title)}" aria-label="${esc(need ? 'Set aisle for ' + it.name : 'Move ' + it.name + ' (now ' + chip + ')')}">${esc(chip)}${ICON.caret}</button>
         <button class="rm" type="button" data-act="remove" aria-label="Remove ${esc(it.name)}">${ICON.x}</button>
       </li>`;
@@ -1040,6 +1070,12 @@
     });
 
     el.sections.addEventListener('click', e => {
+      if (e.target.closest('[data-add-search]')) {
+        const parsed = parseList(listQuery);
+        el.searchInput.value = ''; listQuery = '';
+        if (parsed.length) addParsed(parsed, 'search'); else render();
+        return;
+      }
       if (e.target.closest('[data-demo]')) {
         el.paste.value = 'Bananas\n2 lbs ground beef\nGreek yogurt\nPaper towels\nKetchup\nFrozen peas\nPeanut butter cookies\nChicken broth\nDish soap\nCoffee filters\nBagels\nShampoo';
         autoGrow(); renderPreview(); el.paste.focus();
@@ -1056,6 +1092,30 @@
       else if (a === 'rename') startRename(id, act);
     });
 
+    // Search the active list
+    const onSearch = () => {
+      const wasEmpty = !listQuery;
+      listQuery = el.searchInput.value;
+      render();
+      // jump back to the top of the list so results aren't hidden above the fold
+      if (wasEmpty && listQuery) {
+        const top = el.sections.getBoundingClientRect().top + window.scrollY - el.listSearch.closest('.toolbar').offsetHeight - 12;
+        if (window.scrollY > top) window.scrollTo({ top, behavior: 'smooth' });
+      }
+    };
+    el.searchInput.addEventListener('input', onSearch);
+    el.searchInput.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { el.searchInput.value = ''; onSearch(); el.searchInput.blur(); }
+      if (e.key === 'Enter') { e.preventDefault(); el.searchInput.blur(); } // close the phone keyboard, keep results
+    });
+    el.searchClear.addEventListener('click', () => { el.searchInput.value = ''; onSearch(); el.searchInput.focus(); });
+    // "/" jumps to the search box on a keyboard (unless you're already typing somewhere)
+    document.addEventListener('keydown', e => {
+      if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (/input|textarea|select/i.test(document.activeElement?.tagName) || document.querySelector('dialog[open]')) return;
+      if (!state.items.length) return;
+      e.preventDefault(); el.searchInput.focus();
+    });
     el.orderBtn.addEventListener('click', () => { state.prefs.reverse = !state.prefs.reverse; save(); render(); });
     el.hideBtn.addEventListener('click', () => { state.prefs.hideDone = !state.prefs.hideDone; save(); render(); });
 

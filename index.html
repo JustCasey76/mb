@@ -246,6 +246,25 @@
   .bar { height: 6px; background: var(--rule); border-radius: 999px; overflow: hidden; }
   .bar i { display: block; height: 100%; width: 0; background: var(--green); border-radius: inherit; transition: width .35s cubic-bezier(.2,.8,.2,1); }
   .tools { display: flex; gap: 6px; flex-wrap: wrap; }
+  /* search the active list — lives in the sticky toolbar so it's always in reach */
+  .list-search { flex: 1 1 100%; position: relative; display: none; }
+  .list-search.show { display: block; }
+  .list-search svg.ico { position: absolute; left: 13px; top: 50%; width: 18px; height: 18px; transform: translateY(-50%); color: var(--ink-3); pointer-events: none; }
+  .list-search input {
+    width: 100%; min-height: 44px; padding: 10px 84px 10px 40px; border-radius: 12px;
+    border: 1.5px solid var(--rule-2); background: var(--card); font-size: 16px; box-shadow: var(--shadow);
+  }
+  .list-search input:focus { outline: none; border-color: var(--ink); }
+  .list-search input::-webkit-search-cancel-button { display: none; }
+  .list-search .meta { position: absolute; right: 44px; top: 50%; transform: translateY(-50%); font-size: 12px; font-weight: 700; color: var(--ink-3); white-space: nowrap; pointer-events: none; }
+  .list-search .clear { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 34px; height: 34px; border: 0; border-radius: 8px; background: transparent; color: var(--ink-3); display: none; place-items: center; }
+  .list-search .clear:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); color: var(--ink); }
+  .list-search .clear svg { width: 16px; height: 16px; }
+  .list-search.has-q .clear { display: grid; }
+  .name mark { background: color-mix(in srgb, var(--warn) 30%, transparent); color: inherit; border-radius: 3px; padding: 0 1px; }
+  .search-empty { text-align: center; padding: 28px 20px; border: 1.5px dashed var(--rule-2); border-radius: var(--radius); color: var(--ink-2); margin-top: 8px; }
+  .search-empty b { color: var(--ink); }
+  .search-empty .btn { margin-top: 12px; }
   .toggle[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
 
   .menu-wrap { position: relative; }
@@ -415,7 +434,13 @@
     .store-btn .chev { margin-left: auto; }
     .store-addr { display: none; }
     main { padding: 8px 16px 110px; }
-    .toolbar { margin: 0 -16px; padding: 10px 16px; }
+    .toolbar { margin: 0 -16px; padding: 8px 16px; gap: 8px; }
+    /* phones: progress + buttons share one row so the sticky bar (with search) stays short */
+    .progress { flex: 1 1 100px; min-width: 100px; }
+    .progress-count { font-size: 26px; }
+    .progress-label { font-size: 12px; }
+    .tools { gap: 4px; flex-wrap: nowrap; }
+    .tools .btn.sm { width: 40px; padding: 0; }
     .composer { padding: 14px; }
     .sign .n { font-size: 42px; }
     .sign .n.range { font-size: 26px; }
@@ -559,6 +584,13 @@
               <button role="menuitem" data-act="clearAll" class="danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>Clear whole list</button>
             </div>
           </div>
+        </div>
+        <div class="list-search" id="listSearch" role="search">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+          <label class="sr-only" for="listSearchInput">Find an item on your list</label>
+          <input type="search" id="listSearchInput" placeholder="Find an item on your list…" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="search" />
+          <span class="meta" id="listSearchMeta"></span>
+          <button class="clear" id="listSearchClear" type="button" aria-label="Clear search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
         </div>
       </div>
 
