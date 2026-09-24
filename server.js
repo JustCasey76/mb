@@ -127,7 +127,7 @@ const server = http.createServer(async (req, res) => {
       if (err) return send(res, 404, 'Not found', 'text/plain');
       const headers = { 'Cache-Control': 'no-cache', 'Vary': 'Accept-Encoding' };
       // the store guides are ~360 KB of text; gzip shrinks that to a fraction for phones
-      if (/text|javascript/.test(hit[1]) && /gzip/.test(req.headers['accept-encoding'] || '')) {
+      if (/text|javascript/.test(hit[1]) && /gzip/i.test(req.headers['accept-encoding'] || '')) {
         buf = zlib.gzipSync(buf);
         headers['Content-Encoding'] = 'gzip';
       }
