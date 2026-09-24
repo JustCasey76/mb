@@ -2,2346 +2,539 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<meta name="description" content="Market Basket Lynn Aisle Planner - Plan your grocery trips efficiently!" />
-<title>Market Basket Lynn — Aisle Planner</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="description" content="Paste your grocery list and get it sorted aisle-by-aisle using the Market Basket Shoppers' Guide for your store." />
+<meta name="theme-color" content="#f4efe4" media="(prefers-color-scheme: light)" />
+<meta name="theme-color" content="#12110d" media="(prefers-color-scheme: dark)" />
+<title>Aisle List — Market Basket</title>
 <link rel="icon" type="image/webp" href="favicon.webp" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Big+Shoulders+Display:wght@600;800;900&display=swap" rel="stylesheet" />
 <style>
   :root {
-    --gap: 10px;
-    --bd: #e2e8f0;
-    --muted: #64748b;
-    --text: #0f172a;
-    --primary: #0f766e;        /* MB teal */
-    --primary-dark: #115e59;
-    --accent: #dc2626;         /* MB red */
-    --danger: #dc2626;
-    --success: #16a34a;
-    --bg: #f1f5f9;
-    --card: #ffffff;
-    --shadow-sm: 0 1px 2px rgba(15,23,42,0.06);
-    --shadow-md: 0 4px 12px rgba(15,23,42,0.08);
-    --radius: 10px;
-    --radius-lg: 14px;
+    --paper: #f4efe4;
+    --card: #fffdf8;
+    --ink: #1c1a15;
+    --ink-2: #5b564b;
+    --ink-3: #8c8577;
+    --rule: #e3dccd;
+    --rule-2: #d6cdb9;
+    --red: #c3122f;
+    --red-soft: #fbe6e8;
+    --green: #0f6b43;
+    --green-soft: #e1efe5;
+    --sign: #143f2d;
+    --sign-ink: #fbf6ea;
+    --warn: #a4570a;
+    --warn-soft: #fcefd8;
+    --shadow: 0 1px 0 rgba(28,26,21,.04), 0 8px 24px -12px rgba(28,26,21,.18);
+    --radius: 14px;
+    --display: 'Big Shoulders Display', 'Arial Narrow', sans-serif;
+    --body: 'Atkinson Hyperlegible', system-ui, sans-serif;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #12110d;
+      --card: #1b1a15;
+      --ink: #f1ece0;
+      --ink-2: #bdb6a6;
+      --ink-3: #847e70;
+      --rule: #2d2a22;
+      --rule-2: #3a362c;
+      --red: #f04a5e;
+      --red-soft: #3a1a1e;
+      --green: #55c48c;
+      --green-soft: #17291f;
+      --sign: #1d5a3f;
+      --sign-ink: #f6f1e3;
+      --warn: #f0b04c;
+      --warn-soft: #2f2413;
+      --shadow: 0 1px 0 rgba(0,0,0,.3), 0 10px 30px -14px rgba(0,0,0,.7);
+      color-scheme: dark;
+    }
   }
 
   * { box-sizing: border-box; }
-
+  html { -webkit-text-size-adjust: 100%; }
   body {
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-    line-height: 1.5;
-    margin: 0 auto;
-    padding: 24px 18px 60px;
-    max-width: 1000px;
-    background: var(--bg);
-    color: var(--text);
-    -webkit-font-smoothing: antialiased;
-  }
-
-  h1 {
-    font-size: 26px;
-    margin: 0 0 4px;
-    letter-spacing: -0.02em;
-    color: var(--text);
-  }
-  .page-header {
-    margin-bottom: 18px;
-  }
-  .page-header .subtitle {
-    color: var(--muted);
-    font-size: 14px;
-  }
-  .location-picker {
-    margin-top: 10px;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: white;
-    border: 1px solid var(--bd);
-    border-radius: var(--radius);
-    padding: 6px 10px 6px 12px;
-    box-shadow: var(--shadow-sm);
-  }
-  .location-picker label {
-    font-size: 13px;
-    color: var(--muted);
-    font-weight: 500;
-  }
-  .location-picker select {
-    border: none;
-    background: transparent;
-    padding: 4px 6px;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--primary);
-    min-height: auto;
-    cursor: pointer;
-  }
-  .location-picker select:focus { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 4px; }
-
-  .row {
-    display: flex;
-    gap: var(--gap);
-    flex-wrap: wrap;
-    align-items: center;
-  }
-
-  input, button, select {
-    padding: 10px 14px;
-    border: 1px solid var(--bd);
-    border-radius: var(--radius);
-    font-size: 15px;
-    min-height: 44px;
-    font-family: inherit;
-  }
-
-  input[type="text"] {
-    flex: 1;
-    min-width: 200px;
-    background: white;
-    transition: border-color 0.15s, box-shadow 0.15s;
-  }
-  input[type="text"]:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(15,118,110,0.15);
-  }
-
-  button {
-    background: var(--primary);
-    color: white;
-    border: 1px solid transparent;
-    cursor: pointer;
-    font-weight: 500;
-    transition: background 0.15s, transform 0.05s, box-shadow 0.15s;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    justify-content: center;
-  }
-  button:hover { background: var(--primary-dark); }
-  button:active { transform: translateY(1px); }
-
-  button.secondary {
-    background: white;
-    color: var(--text);
-    border-color: var(--bd);
-  }
-  button.secondary:hover {
-    background: #f8fafc;
-    border-color: #cbd5e1;
-  }
-
-  button.danger {
-    background: white;
-    color: var(--danger);
-    border-color: #fecaca;
-  }
-  button.danger:hover {
-    background: var(--danger);
-    color: white;
-    border-color: var(--danger);
-  }
-
-  button.toggle[aria-pressed="true"] {
-    background: var(--primary);
-    color: white;
-    border-color: var(--primary);
-  }
-
-  .card {
-    background: var(--card);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-sm);
-    padding: 18px;
-    margin-bottom: 16px;
-    border: 1px solid var(--bd);
-  }
-
-  .controls {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-  .action-row {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-  .action-row .spacer { flex: 1; }
-
-  #list { margin-top: 8px; }
-
-  .aisle-group {
-    background: var(--card);
-    border: 1px solid var(--bd);
-    border-radius: var(--radius-lg);
-    margin-bottom: 12px;
-    overflow: hidden;
-    break-inside: avoid;
-  }
-  .aisle-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 16px;
-    background: linear-gradient(180deg, #f8fafc, #f1f5f9);
-    border-bottom: 1px solid var(--bd);
-  }
-  .aisle-header h3 {
     margin: 0;
-    font-size: 14px;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--primary);
-  }
-  .aisle-header .count {
-    font-size: 12px;
-    color: var(--muted);
-    background: white;
-    padding: 2px 8px;
-    border-radius: 999px;
-    border: 1px solid var(--bd);
-  }
-  .aisle-items { padding: 6px; }
-
-  .item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
-    border-radius: var(--radius);
-    background: white;
-    transition: background 0.12s;
-  }
-  .item + .item { margin-top: 2px; }
-  .item:hover { background: #f8fafc; }
-
-  .item-name { flex: 1; font-size: 15px; }
-
-  .editable-name { cursor: pointer; }
-  .editable-name:hover { color: var(--primary); }
-  .editable-name.is-editing { cursor: text; }
-
-  .editing-name-input {
-    width: 100%;
-    min-width: 0;
-    padding: 6px 8px;
-    font-size: 15px;
-    border: 1px solid var(--primary);
-    border-radius: 6px;
-    min-height: auto;
-  }
-
-  .item-aisle {
-    background: #ecfdf5;
-    color: var(--primary-dark);
-    padding: 3px 10px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 600;
-    white-space: nowrap;
-    border: 1px solid #d1fae5;
-  }
-  .editable-aisle { cursor: pointer; transition: background 0.15s; }
-  .editable-aisle:hover { background: #d1fae5; }
-
-  .remove-btn {
-    background: transparent;
-    border: none;
-    color: #94a3b8;
-    cursor: pointer;
+    font-family: var(--body);
     font-size: 16px;
-    padding: 6px 8px;
-    min-height: auto;
-    border-radius: 6px;
+    line-height: 1.45;
+    color: var(--ink);
+    background-color: var(--paper);
+    background-image:
+      radial-gradient(ellipse 80% 50% at 100% 0%, color-mix(in srgb, var(--red) 7%, transparent), transparent 70%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-attachment: fixed;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
   }
-  .remove-btn:hover { color: var(--danger); background: #fef2f2; }
+  button, input, textarea, select { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  :focus-visible { outline: 2.5px solid var(--red); outline-offset: 2px; border-radius: 6px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
-  .muted { color: var(--muted); font-size: 14px; }
+  /* ---------- Masthead ---------- */
+  .band { height: 6px; background: linear-gradient(90deg, var(--red) 0 72%, var(--paper) 72% 73%, var(--green) 73%); }
+  header.mast {
+    max-width: 1180px; margin: 0 auto; padding: 22px 20px 10px;
+    display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; flex-wrap: wrap;
+  }
+  .brand { display: flex; flex-direction: column; gap: 2px; }
+  .brand .kicker { font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-3); font-weight: 700; }
+  .brand h1 {
+    margin: 0; font-family: var(--display); font-weight: 900; font-size: clamp(42px, 7vw, 64px);
+    line-height: .86; letter-spacing: -.005em; text-transform: uppercase;
+  }
+  .brand h1 span { color: var(--red); }
 
-  .status {
-    padding: 10px 14px;
-    background: #f8fafc;
-    border: 1px solid var(--bd);
-    border-radius: var(--radius);
-    font-size: 13px;
-    color: var(--muted);
+  .store-switch { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+  .seg { display: inline-flex; background: var(--card); border: 1.5px solid var(--rule-2); border-radius: 999px; padding: 3px; box-shadow: var(--shadow); }
+  .seg button {
+    border: 0; background: transparent; padding: 8px 16px; border-radius: 999px;
+    font-family: var(--display); font-weight: 800; font-size: 18px; letter-spacing: .03em; text-transform: uppercase; color: var(--ink-2);
+    display: inline-flex; align-items: baseline; gap: 6px; min-height: 40px;
   }
+  .seg button small { font-family: var(--body); font-weight: 700; font-size: 11px; letter-spacing: .04em; opacity: .75; }
+  .seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+  .store-addr { font-size: 13px; color: var(--ink-3); }
 
-  .empty-state {
-    text-align: center;
-    padding: 40px 20px;
-    color: var(--muted);
+  /* ---------- Layout ---------- */
+  main {
+    max-width: 1180px; margin: 0 auto; padding: 12px 20px 120px;
+    display: grid; grid-template-columns: minmax(320px, 400px) minmax(0, 1fr); gap: 28px; align-items: start;
   }
-  .empty-state .icon {
-    font-size: 40px;
-    margin-bottom: 8px;
-    opacity: 0.5;
-  }
-  
-  .print-only { display: none; }
-  
-  @media print {
-    body {
-      padding: 0;
-      margin: 0;
-      font-family: Arial, sans-serif;
-      font-size: 11pt;
-      line-height: 1.2;
-    }
-    
-    .no-print {
-      display: none !important;
-    }
-    
-    .print-only {
-      display: block;
-      margin-bottom: 10px;
-    }
-    
-    .print-only h1 {
-      font-size: 16pt;
-      margin: 0 0 2px 0;
-      font-weight: bold;
-    }
-    
-    .print-only #printDate {
-      font-size: 9pt;
-      color: #666;
-      margin-bottom: 10px;
-    }
-    
-    #list {
-      margin: 0;
-      padding: 0;
-    }
-    
-    .item {
-      display: flex;
-      justify-content: space-between;
-      padding: 2px 0;
-      border: none;
-      box-shadow: none;
-      background: none;
-      margin: 0;
-      break-inside: avoid;
-      page-break-inside: avoid;
-    }
-    
-    .item-name {
-      flex: 1;
-      font-size: 11pt;
-    }
-    
-    .item-aisle {
-      background: none;
-      color: #000;
-      padding: 0;
-      margin-left: 10px;
-      font-size: 11pt;
-      font-weight: normal;
-    }
-    
-    .remove-btn {
-      display: none;
-    }
-    
-    @page {
-      margin: 0.3in;
-    }
-  }
-  
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(4px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  .fade-in { animation: fadeIn 0.25s ease-out forwards; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; gap: 18px; } }
 
-  #suggestions {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background: white;
-    border: 1px solid var(--bd);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow-md);
-    margin-top: 4px;
-    max-height: 240px;
-    overflow-y: auto;
+  .panel {
+    background: var(--card); border: 1.5px solid var(--rule); border-radius: var(--radius); box-shadow: var(--shadow);
+  }
+  .composer { position: sticky; top: 16px; padding: 18px; }
+  @media (max-width: 900px) { .composer { position: static; } }
+
+  .label-row { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+  .label-row h2 { margin: 0; font-family: var(--display); font-weight: 800; font-size: 26px; text-transform: uppercase; letter-spacing: .01em; line-height: 1; }
+  .hint { font-size: 12.5px; color: var(--ink-3); }
+  kbd { font-family: var(--body); font-size: 11px; font-weight: 700; padding: 1px 5px; border: 1px solid var(--rule-2); border-bottom-width: 2px; border-radius: 4px; background: var(--paper); color: var(--ink-2); }
+
+  .paste {
+    width: 100%; min-height: 132px; max-height: 44vh; resize: vertical; display: block;
+    padding: 14px 14px; border: 1.5px dashed var(--rule-2); border-radius: 12px;
+    background:
+      repeating-linear-gradient(to bottom, transparent 0 27px, color-mix(in srgb, var(--rule) 80%, transparent) 27px 28px) 0 13px / 100% 100% local,
+      var(--paper);
+    line-height: 28px; font-size: 16px;
+    transition: border-color .15s, background-color .15s;
+  }
+  .paste:focus { outline: none; border-style: solid; border-color: var(--ink); }
+  .paste::placeholder { color: var(--ink-3); }
+
+  .preview { margin-top: 12px; display: none; }
+  .preview.show { display: block; }
+  .preview-head { display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); margin: 0 2px 6px; }
+  .preview ul { list-style: none; margin: 0; padding: 0; max-height: 260px; overflow: auto; border-top: 1.5px solid var(--ink); }
+  .preview li {
+    display: grid; grid-template-columns: auto 1fr auto; align-items: baseline; gap: 6px;
+    padding: 7px 2px; border-bottom: 1px solid var(--rule); font-size: 15px;
+  }
+  .preview li.fresh { animation: rise .22s ease-out both; }
+  .preview .p-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60vw; }
+  .preview .p-name em { font-style: normal; color: var(--ink-3); font-size: 13px; margin-left: 4px; }
+  .leader { border-bottom: 2px dotted var(--rule-2); transform: translateY(-4px); min-width: 12px; }
+  .p-aisle { font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .p-aisle small { display: block; text-align: right; font-weight: 400; font-size: 11.5px; color: var(--ink-3); }
+  .p-aisle.none { color: var(--warn); }
+
+  .composer-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 44px; padding: 10px 16px; border-radius: 10px; border: 1.5px solid var(--rule-2);
+    background: var(--card); font-weight: 700; font-size: 15px; transition: transform .06s, background-color .15s, border-color .15s;
+  }
+  .btn:hover { border-color: var(--ink-3); }
+  .btn:active { transform: translateY(1px); }
+  .btn.primary { background: var(--red); border-color: var(--red); color: #fff; flex: 1; }
+  .btn.primary:hover { filter: brightness(1.06); }
+  .btn.primary:disabled { opacity: .45; cursor: not-allowed; filter: none; }
+  .btn svg { width: 18px; height: 18px; flex: none; }
+  .btn.ghost { border-color: transparent; background: transparent; }
+  .btn.ghost:hover { background: color-mix(in srgb, var(--ink) 6%, transparent); }
+  .btn.sm { min-height: 36px; padding: 6px 12px; font-size: 14px; }
+
+  .regulars { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--rule); display: none; }
+  .regulars.show { display: block; }
+  .regulars h3 { margin: 0 0 8px; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    border: 1.5px solid var(--rule-2); background: var(--paper); border-radius: 999px; padding: 5px 12px 5px 10px;
+    font-size: 14px; display: inline-flex; align-items: center; gap: 5px; min-height: 34px;
+  }
+  .chip::before { content: '+'; font-weight: 700; color: var(--red); }
+  .chip:hover { border-color: var(--ink); }
+
+  /* ---------- List column ---------- */
+  .list-col { min-width: 0; }
+  .toolbar {
+    position: sticky; top: 0; z-index: 20; margin: 0 -20px; padding: 10px 20px;
+    background: color-mix(in srgb, var(--paper) 88%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .progress { flex: 1 1 220px; display: flex; flex-direction: column; gap: 5px; min-width: 180px; }
+  .progress-top { display: flex; align-items: baseline; gap: 8px; }
+  .progress-count { font-family: var(--display); font-weight: 900; font-size: 30px; line-height: 1; font-variant-numeric: tabular-nums; }
+  .progress-count span { color: var(--ink-3); font-weight: 800; }
+  .progress-label { font-size: 13px; color: var(--ink-2); }
+  .bar { height: 6px; background: var(--rule); border-radius: 999px; overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--green); border-radius: inherit; transition: width .35s cubic-bezier(.2,.8,.2,1); }
+  .tools { display: flex; gap: 6px; flex-wrap: wrap; }
+  .toggle[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+
+  .menu-wrap { position: relative; }
+  .menu {
+    position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; min-width: 230px;
+    background: var(--card); border: 1.5px solid var(--rule-2); border-radius: 12px; box-shadow: var(--shadow); padding: 6px;
     display: none;
-    z-index: 1000;
   }
-  #suggestions > div {
-    padding: 10px 14px;
-    cursor: pointer;
-    font-size: 15px;
-  }
-  #suggestions > div:hover { background: #f1f5f9; }
+  .menu.open { display: block; animation: rise .16s ease-out; }
+  .menu button { display: flex; width: 100%; align-items: center; gap: 10px; border: 0; background: transparent; padding: 10px 12px; border-radius: 8px; text-align: left; font-size: 15px; }
+  .menu button:hover { background: color-mix(in srgb, var(--ink) 6%, transparent); }
+  .menu button svg { width: 18px; height: 18px; color: var(--ink-3); }
+  .menu hr { border: 0; border-top: 1px solid var(--rule); margin: 5px 4px; }
+  .menu .danger { color: var(--red); }
+  .menu .danger svg { color: var(--red); }
 
-  .view-toggle {
-    display: inline-flex;
-    background: white;
-    border: 1px solid var(--bd);
-    border-radius: var(--radius);
-    padding: 3px;
-    margin-bottom: 12px;
-    gap: 2px;
+  .sections { display: flex; flex-direction: column; gap: 14px; margin-top: 8px; }
+  .section {
+    display: grid; grid-template-columns: 92px minmax(0, 1fr);
+    background: var(--card); border: 1.5px solid var(--rule); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow);
+    transition: opacity .3s;
   }
-  .view-toggle button {
-    background: transparent;
-    color: var(--muted);
-    border: none;
-    min-height: 36px;
-    padding: 6px 14px;
-    font-size: 14px;
-    border-radius: 7px;
+  .sign {
+    background: var(--sign); color: var(--sign-ink);
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 14px 6px; text-align: center; gap: 2px;
+    position: relative;
   }
-  .view-toggle button.active {
-    background: var(--primary);
-    color: white;
+  .sign::after { /* hanging-sign hooks */
+    content: ''; position: absolute; top: 6px; left: 50%; width: 34px; height: 4px; margin-left: -17px;
+    border-left: 3px solid color-mix(in srgb, var(--sign-ink) 35%, transparent); border-right: 3px solid color-mix(in srgb, var(--sign-ink) 35%, transparent);
   }
-  .view-toggle button:not(.active):hover {
-    background: #f1f5f9;
-    color: var(--text);
-  }
+  .sign .k { font-size: 10.5px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; opacity: .8; margin-top: 6px; }
+  .sign .n { font-family: var(--display); font-weight: 900; font-size: 52px; line-height: .9; font-variant-numeric: tabular-nums; }
+  .sign .w { font-family: var(--display); font-weight: 800; font-size: 21px; line-height: .95; text-transform: uppercase; letter-spacing: .02em; overflow-wrap: anywhere; margin-top: 4px; }
+  .sign .n.range { font-size: 36px; }
+  .section.fresh { animation: rise .3s ease-out both; }
+  .section.unknown .sign { background: var(--warn); color: #fff; }
+  .section.done .sign { background: var(--ink-3); }
+  .section.done { opacity: .62; }
 
-  .browse-panel {
-    display: none;
-    padding: 14px;
-    border: 1px solid var(--bd);
-    border-radius: var(--radius-lg);
-    background: #f8fafc;
-    margin-top: 12px;
-  }
+  .sec-body { min-width: 0; }
+  .sec-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding: 12px 16px 6px; }
+  .sec-desc { font-size: 13px; color: var(--ink-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sec-count { font-size: 12px; font-weight: 700; color: var(--ink-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .section.unknown .sec-desc { color: var(--warn); white-space: normal; }
 
-  .browse-toolbar {
-    display: flex;
-    gap: var(--gap);
-    flex-wrap: wrap;
-    align-items: center;
-    margin-bottom: 10px;
+  .items { list-style: none; margin: 0; padding: 0 8px 8px; }
+  .item {
+    display: grid; grid-template-columns: 44px minmax(0, 1fr) auto auto; align-items: center; gap: 4px;
+    border-top: 1px dashed var(--rule); min-height: 52px; padding: 2px 0;
   }
+  .item:first-child { border-top: 0; }
+  .check {
+    width: 44px; height: 44px; border: 0; background: transparent; display: grid; place-items: center; padding: 0;
+  }
+  .check .box {
+    width: 24px; height: 24px; border: 2px solid var(--ink-3); border-radius: 7px; display: grid; place-items: center;
+    transition: background-color .18s, border-color .18s, transform .18s;
+  }
+  .check .box svg { width: 16px; height: 16px; stroke: #fff; stroke-width: 3.2; fill: none; stroke-dasharray: 20; stroke-dashoffset: 20; transition: stroke-dashoffset .25s ease-out .05s; }
+  .item.checked .check .box { background: var(--green); border-color: var(--green); transform: scale(1.04); }
+  .item.checked .check .box svg { stroke-dashoffset: 0; }
+  .check:active .box { transform: scale(.9); }
 
-  .browse-summary {
-    margin-left: auto;
-    color: var(--muted);
-    font-size: 13px;
-  }
+  .name { min-width: 0; padding: 8px 4px; border-radius: 6px; cursor: text; overflow-wrap: break-word; hyphens: auto; font-size: 17px; }
+  .name .qty { display: inline-block; margin-left: 8px; font-size: 12.5px; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: var(--paper); border: 1px solid var(--rule-2); color: var(--ink-2); vertical-align: 2px; }
+  .item.checked .name { color: var(--ink-3); text-decoration: line-through; text-decoration-thickness: 2px; text-decoration-color: color-mix(in srgb, var(--ink-3) 70%, transparent); }
+  .name input { width: 100%; font-size: 17px; padding: 6px 8px; border: 1.5px solid var(--ink); border-radius: 8px; background: var(--paper); }
 
-  .browse-list {
-    max-height: 340px;
-    overflow-y: auto;
-    border: 1px solid var(--bd);
-    border-radius: var(--radius);
-    background: white;
+  .aisle-btn {
+    border: 1.5px solid var(--rule-2); background: transparent; border-radius: 999px; padding: 3px 10px; font-size: 13px; font-weight: 700; color: var(--ink-2);
+    white-space: nowrap; min-height: 32px; display: inline-flex; align-items: center; gap: 4px;
   }
+  .aisle-btn:hover { border-color: var(--ink); color: var(--ink); }
+  .aisle-btn.need { border-color: var(--warn); color: var(--warn); background: var(--warn-soft); }
+  .aisle-btn svg { width: 12px; height: 12px; }
+  .rm { width: 40px; height: 40px; border: 0; background: transparent; border-radius: 8px; color: var(--ink-3); display: grid; place-items: center; }
+  .rm:hover { color: var(--red); background: var(--red-soft); }
+  .rm svg { width: 18px; height: 18px; }
 
-  .browse-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
-    border-bottom: 1px solid #f1f5f9;
+  .empty {
+    text-align: center; padding: 56px 24px; border: 1.5px dashed var(--rule-2); border-radius: var(--radius); margin-top: 8px; color: var(--ink-2);
   }
-  .browse-item:last-child { border-bottom: none; }
-  .browse-item input[type="checkbox"] {
-    width: 18px; height: 18px;
-    min-width: auto; min-height: auto;
-    margin: 0;
-    accent-color: var(--primary);
-  }
-  .browse-item-name { flex: 1; }
-  .browse-item.disabled { background: #f8fafc; color: #94a3b8; }
+  .empty .big { font-family: var(--display); font-weight: 900; font-size: 40px; text-transform: uppercase; line-height: .95; color: var(--ink); margin-bottom: 10px; }
+  .empty p { margin: 0 auto; max-width: 36ch; }
+  .empty-demo { margin-top: 16px; }
 
-  .browse-empty {
-    padding: 20px;
-    color: var(--muted);
-    text-align: center;
+  .list-foot { margin-top: 18px; font-size: 12.5px; color: var(--ink-3); text-align: center; }
+  .list-foot a { color: inherit; }
+
+  /* ---------- Dialog sheets ---------- */
+  dialog.sheet {
+    border: 0; padding: 0; background: var(--card); color: var(--ink);
+    width: min(560px, calc(100vw - 24px)); max-height: min(82vh, 760px);
+    border-radius: 18px; box-shadow: 0 30px 80px -20px rgba(0,0,0,.45);
+    display: none; flex-direction: column; overflow: hidden;
   }
+  dialog.sheet[open] { display: flex; animation: sheetIn .24s cubic-bezier(.2,.8,.2,1); }
+  dialog.sheet::backdrop { background: rgba(18,16,12,.5); backdrop-filter: blur(2px); }
+  @media (max-width: 640px) {
+    dialog.sheet { width: 100vw; max-width: 100vw; margin: auto 0 0; border-radius: 18px 18px 0 0; max-height: 88vh; }
+    dialog.sheet[open] { animation: sheetUp .26s cubic-bezier(.2,.8,.2,1); }
+  }
+  .sheet-head { padding: 18px 18px 12px; border-bottom: 1.5px solid var(--ink); display: flex; gap: 12px; align-items: flex-start; }
+  .sheet-head h2 { margin: 0; font-family: var(--display); font-weight: 900; font-size: 30px; line-height: .95; text-transform: uppercase; }
+  .sheet-head p { margin: 4px 0 0; font-size: 14px; color: var(--ink-2); }
+  .sheet-head .x { margin-left: auto; flex: none; }
+  .sheet-search { padding: 12px 18px; border-bottom: 1px solid var(--rule); }
+  .field {
+    width: 100%; min-height: 44px; padding: 10px 14px; border: 1.5px solid var(--rule-2); border-radius: 10px; background: var(--paper); font-size: 16px;
+  }
+  .field:focus { outline: none; border-color: var(--ink); }
+  .sheet-body { overflow: auto; padding: 6px 10px 14px; -webkit-overflow-scrolling: touch; }
+
+  .pick { display: grid; grid-template-columns: 64px 1fr; gap: 12px; align-items: center; width: 100%; text-align: left; border: 0; background: transparent; padding: 8px; border-radius: 12px; }
+  .pick:hover, .pick:focus-visible { background: color-mix(in srgb, var(--ink) 6%, transparent); }
+  .pick .tag {
+    background: var(--sign); color: var(--sign-ink); border-radius: 8px; height: 52px; display: grid; place-items: center;
+    font-family: var(--display); font-weight: 900; font-size: 28px; line-height: 1; text-align: center; padding: 2px;
+  }
+  .pick .tag.word { font-size: 13px; font-weight: 800; text-transform: uppercase; line-height: 1.05; }
+  .pick .t { font-weight: 700; }
+  .pick .d { font-size: 13px; color: var(--ink-3); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .pick.current .tag { background: var(--red); }
+  .custom-row { display: flex; gap: 8px; padding: 10px 8px 4px; }
+
+  .guide-letter { font-family: var(--display); font-weight: 900; font-size: 26px; padding: 12px 8px 2px; color: var(--red); line-height: 1; }
+  .g-row {
+    display: grid; grid-template-columns: minmax(0, auto) 1fr auto 34px; align-items: baseline; gap: 6px;
+    width: 100%; border: 0; background: transparent; padding: 9px 8px; border-radius: 8px; text-align: left; font-size: 15px;
+  }
+  .g-row:hover { background: color-mix(in srgb, var(--ink) 5%, transparent); }
+  .g-row .g-name em { color: var(--ink-2); }
+  .g-row .g-aisle { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .g-row .g-add { justify-self: end; width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--rule-2); display: grid; place-items: center; font-weight: 700; color: var(--red); align-self: center; }
+  .g-row.added .g-add { background: var(--green); border-color: var(--green); color: #fff; }
+  .g-empty { padding: 30px; text-align: center; color: var(--ink-3); }
+
+  .saved-row { display: flex; align-items: center; gap: 10px; padding: 10px 8px; border-bottom: 1px solid var(--rule); }
+  .saved-row .meta { flex: 1; min-width: 0; }
+  .saved-row .meta b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .saved-row .meta span { font-size: 13px; color: var(--ink-3); }
+  .save-new { display: flex; gap: 8px; padding: 12px 8px; }
+
+  /* ---------- Toast ---------- */
+  .toast {
+    position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom)); z-index: 60;
+    transform: translate(-50%, 140%); transition: transform .28s cubic-bezier(.2,.8,.2,1);
+    background: var(--ink); color: var(--paper); border-radius: 12px; padding: 10px 10px 10px 16px;
+    display: flex; align-items: center; gap: 14px; box-shadow: 0 16px 40px -12px rgba(0,0,0,.5); max-width: calc(100vw - 24px); font-size: 15px;
+  }
+  .toast.show { transform: translate(-50%, 0); }
+  .toast button { border: 0; background: color-mix(in srgb, var(--paper) 16%, transparent); color: var(--paper); font-weight: 700; padding: 8px 12px; border-radius: 8px; }
+  .toast button[hidden] { display: none; }
+
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  @keyframes sheetIn { from { opacity: 0; transform: translateY(12px) scale(.98); } to { opacity: 1; transform: none; } }
+  @keyframes sheetUp { from { transform: translateY(100%); } to { transform: none; } }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 
   @media (max-width: 640px) {
-    body { padding: 16px 12px 50px; }
-    h1 { font-size: 22px; }
-    input, button, select { font-size: 14px; }
-    .action-row button { flex: 1 1 auto; }
+    header.mast { padding: 16px 16px 6px; align-items: flex-start; }
+    .store-switch { align-items: flex-start; width: 100%; }
+    .seg { width: 100%; }
+    .seg button { flex: 1; justify-content: center; }
+    main { padding: 8px 16px 110px; }
+    .toolbar { margin: 0 -16px; padding: 10px 16px; }
+    .composer { padding: 14px; }
+    .sign .n { font-size: 42px; }
+    .sign .n.range { font-size: 26px; }
+    .sign .w { font-size: 14.5px; letter-spacing: 0; overflow-wrap: normal; }
+    .hint { display: none; }
+    body { background-attachment: scroll; }
+    .tools .btn .lbl { display: none; }
+    .section { grid-template-columns: 62px minmax(0, 1fr); }
+    .sign .k { font-size: 9.5px; letter-spacing: .12em; }
+    .items { padding: 0 4px 6px; }
+    .item { grid-template-columns: 42px minmax(0, 1fr) auto 34px; gap: 2px; }
+    .rm { width: 34px; }
+    .aisle-btn:not(.need) { width: 34px; padding: 0; justify-content: center; font-size: 0; gap: 0; }
+    .aisle-btn:not(.need) svg { width: 14px; height: 14px; }
+    .sec-head { padding: 10px 10px 4px 12px; }
   }
 
-  .hidden { display: none; }
+  /* ---------- Print ---------- */
+  .print-head { display: none; }
+  @media print {
+    @page { margin: .4in; }
+    body { background: #fff; color: #000; font-size: 11pt; }
+    .band, header.mast, .composer, .toolbar, .list-foot, .toast, .empty, dialog, .aisle-btn, .rm { display: none !important; }
+    main { display: block; padding: 0; max-width: none; }
+    .print-head { display: block; border-bottom: 2px solid #000; margin-bottom: 10px; padding-bottom: 4px; }
+    .print-head b { font-family: var(--display); font-size: 22pt; text-transform: uppercase; }
+    .print-head span { float: right; font-size: 9pt; margin-top: 12pt; }
+    .sections { display: block; columns: 2; column-gap: .35in; margin: 0; }
+    .section { display: block; break-inside: avoid; border: 0; box-shadow: none; border-radius: 0; margin: 0 0 8pt; opacity: 1 !important; animation: none; background: none; }
+    .sign { display: block; background: none !important; color: #000; padding: 0; text-align: left; border-bottom: 1px solid #000; }
+    .sign::after { display: none; }
+    .sign .k, .sign .n, .sign .w { display: inline; font-size: 12pt; margin: 0 4pt 0 0; letter-spacing: .04em; font-family: var(--display); }
+    .sign .k { font-weight: 800; }
+    .sec-head { display: none; }
+    .items { padding: 0; }
+    .item { display: flex; min-height: 0; border: 0; padding: 1.5pt 0; }
+    .check { width: auto; height: auto; margin-right: 6pt; }
+    .check .box { width: 10pt; height: 10pt; border: 1.2px solid #000; border-radius: 2px; background: none !important; }
+    .check .box svg { display: none; }
+    .name { padding: 0; font-size: 11pt; }
+    .item.checked .name { color: #777; }
+  }
 </style>
 </head>
 <body>
-  <div class="no-print">
-    <header class="page-header">
-      <h1>Market Basket — Aisle Planner</h1>
-      <div class="subtitle" id="locationSubtitle">Plan your shop, walk the store in order.</div>
-      <div class="location-picker">
-        <label for="locationSelect">Store:</label>
-        <select id="locationSelect">
-          <option value="lynn">Lynn #82 — 40 Federal Street</option>
-          <option value="middleton">Middleton #45 — 230 South Main Street</option>
-        </select>
+  <div class="band" aria-hidden="true"></div>
+
+  <header class="mast">
+    <div class="brand">
+      <div class="kicker">Market Basket · Shoppers' Guide planner</div>
+      <h1>Aisle<span>/</span>List</h1>
+    </div>
+    <div class="store-switch">
+      <div class="seg" role="group" aria-label="Choose your store" id="storeSeg"></div>
+      <div class="store-addr" id="storeAddr"></div>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel composer" aria-labelledby="composerTitle">
+      <div class="label-row">
+        <h2 id="composerTitle">Add items</h2>
+        <span class="hint"><kbd>Enter</kbd> adds · <kbd>Shift</kbd>+<kbd>Enter</kbd> new line</span>
       </div>
-    </header>
+      <label class="sr-only" for="paste">Type or paste your list, one item per line</label>
+      <textarea id="paste" class="paste" rows="4" spellcheck="true" autocomplete="off"
+        placeholder="Type or paste your whole list&#10;2 lbs ground beef&#10;bananas, yogurt, paper towels&#10;- ketchup"></textarea>
 
-    <div class="card">
-      <div class="view-toggle">
-        <button id="searchModeBtn" type="button" class="active">Search / Add</button>
-        <button id="browseModeBtn" type="button">Browse / Select</button>
+      <div class="preview" id="preview" aria-live="polite">
+        <div class="preview-head"><span id="previewCount"></span><span id="previewMatched"></span></div>
+        <ul id="previewList"></ul>
       </div>
 
-      <div class="controls">
-        <div id="searchAddView" class="row" style="position: relative;">
-          <input type="text" id="itemInput" placeholder="Type an item (e.g. ketchup, oreos, yogurt)..." autocomplete="off" />
-          <button id="addBtn">Add</button>
-          <div id="suggestions"></div>
-        </div>
+      <div class="composer-actions">
+        <button class="btn primary" id="addBtn" type="button" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          <span id="addLabel">Add to list</span>
+        </button>
+        <button class="btn" id="guideBtn" type="button" title="Browse the store's Shoppers' Guide">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5M9 7h6M9 11h6"/></svg>
+          Guide
+        </button>
+      </div>
 
-        <div id="browseView" class="browse-panel">
-          <div class="browse-toolbar">
-            <input type="text" id="browseFilterInput" placeholder="Filter all stored items..." style="flex: 1; min-width: 220px;" />
-            <button id="selectVisibleBtn" type="button" class="secondary">Select Visible</button>
-            <button id="clearBrowseSelectionBtn" type="button" class="secondary">Clear Selection</button>
-            <button id="addSelectedBtn" type="button">Add Selected</button>
-            <div id="browseSummary" class="browse-summary">Loading items...</div>
+      <div class="regulars" id="regulars">
+        <h3>Your regulars</h3>
+        <div class="chips" id="regularChips"></div>
+      </div>
+    </section>
+
+    <section class="list-col" aria-label="Your list, in aisle order">
+      <div class="print-head"><b id="printTitle">Shopping list</b><span id="printDate"></span></div>
+
+      <div class="toolbar">
+        <div class="progress" aria-live="polite">
+          <div class="progress-top">
+            <div class="progress-count" id="progCount">0<span>/0</span></div>
+            <div class="progress-label" id="progLabel">in the cart</div>
           </div>
-          <div id="browseItems" class="browse-list"></div>
+          <div class="bar"><i id="progBar"></i></div>
         </div>
-
-        <div class="action-row">
-          <button id="reverseOrderBtn" type="button" class="secondary toggle" aria-pressed="false" title="Toggle aisle sort direction">
-            <span id="reverseOrderIcon">↓</span>
-            <span id="reverseOrderLabel">Aisles: low → high</span>
+        <div class="tools">
+          <button class="btn sm toggle" id="orderBtn" type="button" aria-pressed="false" title="Flip the walking order">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/></svg>
+            <span class="lbl" id="orderLabel">Front → back</span>
           </button>
-          <span class="spacer"></span>
-          <button id="printBtn" class="secondary">Print</button>
-          <button id="saveListBtn" class="secondary">Save</button>
-          <button id="loadListBtn" class="secondary">Load</button>
-          <button id="clearBtn" class="danger">Clear All</button>
+          <button class="btn sm toggle" id="hideBtn" type="button" aria-pressed="false" title="Hide items already in the cart">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12s3.5-7 9-7 9 7 9 7-3.5 7-9 7-9-7-9-7z"/><circle cx="12" cy="12" r="3"/></svg>
+            <span class="lbl">Hide done</span>
+          </button>
+          <div class="menu-wrap">
+            <button class="btn sm" id="menuBtn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="menu">
+              <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+              <span class="lbl">More</span>
+            </button>
+            <div class="menu" id="menu" role="menu">
+              <button role="menuitem" data-act="share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v13"/></svg><span id="shareLabel">Share / copy list</span></button>
+              <button role="menuitem" data-act="print"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>Print</button>
+              <button role="menuitem" data-act="saved"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>Saved lists</button>
+              <hr />
+              <button role="menuitem" data-act="uncheck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/></svg>Uncheck everything</button>
+              <button role="menuitem" data-act="clearDone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4L19 6"/></svg>Remove checked items</button>
+              <button role="menuitem" data-act="clearAll" class="danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>Clear whole list</button>
+            </div>
+          </div>
         </div>
       </div>
+
+      <div class="sections" id="sections"></div>
+      <div class="list-foot" id="listFoot"></div>
+    </section>
+  </main>
+
+  <!-- Aisle picker -->
+  <dialog class="sheet" id="aisleSheet" aria-labelledby="aisleTitle">
+    <div class="sheet-head">
+      <div>
+        <h2 id="aisleTitle">Where is it?</h2>
+        <p id="aisleSub"></p>
+      </div>
+      <button class="btn sm ghost x" type="button" data-close aria-label="Close">✕</button>
     </div>
+    <div class="sheet-search"><input class="field" id="aisleFilter" type="search" placeholder="Filter aisles by what's in them…" autocomplete="off" /></div>
+    <div class="sheet-body" id="aisleOptions"></div>
+  </dialog>
 
-    <div id="savedListsPanel" class="card hidden">
-      <h3 style="margin: 0 0 10px; font-size: 15px;">Saved Lists</h3>
-      <div id="savedListsContainer"></div>
+  <!-- Guide browser -->
+  <dialog class="sheet" id="guideSheet" aria-labelledby="guideTitle">
+    <div class="sheet-head">
+      <div>
+        <h2 id="guideTitle">Shoppers' Guide</h2>
+        <p id="guideSub"></p>
+      </div>
+      <button class="btn sm ghost x" type="button" data-close aria-label="Close">✕</button>
     </div>
+    <div class="sheet-search"><input class="field" id="guideFilter" type="search" placeholder="Search the guide…" autocomplete="off" /></div>
+    <div class="sheet-body" id="guideList"></div>
+  </dialog>
 
-    <div id="status" class="status">Loading aisle data...</div>
-  </div>
-  
-  <div class="print-only">
-    <h1>Market Basket Lynn — Shopping List</h1>
-    <div id="printDate"></div>
-  </div>
-  
-  <div id="list"></div>
-  
-  <script>
-  // DOM Elements
-  const els = {
-    // Inputs
-    input: document.getElementById('itemInput'),
-    addBtn: document.getElementById('addBtn'),
-    searchModeBtn: document.getElementById('searchModeBtn'),
-    browseModeBtn: document.getElementById('browseModeBtn'),
-    searchAddView: document.getElementById('searchAddView'),
-    browseView: document.getElementById('browseView'),
-    browseFilterInput: document.getElementById('browseFilterInput'),
-    selectVisibleBtn: document.getElementById('selectVisibleBtn'),
-    clearBrowseSelectionBtn: document.getElementById('clearBrowseSelectionBtn'),
-    addSelectedBtn: document.getElementById('addSelectedBtn'),
-    locationSelect: document.getElementById('locationSelect'),
-    locationSubtitle: document.getElementById('locationSubtitle'),
-    reverseOrderBtn: document.getElementById('reverseOrderBtn'),
-    reverseOrderIcon: document.getElementById('reverseOrderIcon'),
-    reverseOrderLabel: document.getElementById('reverseOrderLabel'),
-    printBtn: document.getElementById('printBtn'),
-    saveListBtn: document.getElementById('saveListBtn'),
-    loadListBtn: document.getElementById('loadListBtn'),
-    clearBtn: document.getElementById('clearBtn'),
-    
-    // Outputs
-    list: document.getElementById('list'),
-    status: document.getElementById('status'),
-    printDate: document.getElementById('printDate'),
-    browseItems: document.getElementById('browseItems'),
-    browseSummary: document.getElementById('browseSummary'),
-    savedListsPanel: document.getElementById('savedListsPanel'),
-    savedListsContainer: document.getElementById('savedListsContainer')
-  };
-  
-  // State
-  let items = [];
-  let aisles = [];
-  let reverseAisles = false;
-  let currentInputMode = 'search';
-  let browseFilter = '';
-  let browseSelections = new Set();
-  let editingItemNameId = null;
-  let masterDbPromise = null;
-  
-  const MASTER_DB = {
-    name: 'MBAislePlannerDB',
-    version: 1,
-    store: 'masterItems',
-    migrationKey: 'mbMasterDbMigratedV1'
-  };
-  
-  // Per-location embedded aisle data — derived from each Market Basket Shoppers' Guide PDF.
-  const LYNN_EMBEDDED = [{"item":"Air Freshener","aisle":"15"},{"item":"Aluminum Foil","aisle":"14"},{"item":"Ammonia","aisle":"15"},{"item":"Applesauce","aisle":"9"},{"item":"Automotive","aisle":"13"},{"item":"Baby Food","aisle":"12"},{"item":"Baby Powder","aisle":"12"},{"item":"Bagels","aisle":"Bakery"},{"item":"Bags: Lunch-Sandwich","aisle":"14"},{"item":"Bags: Garbage-Trash","aisle":"14"},{"item":"Bakery: Fresh","aisle":"Front Corner"},{"item":"Bakery: Packaged","aisle":"18"},{"item":"Bakeware","aisle":"13"},{"item":"Baking Needs","aisle":"7"},{"item":"Barbecue Sauce","aisle":"3"},{"item":"Bath Tissue","aisle":"13"},{"item":"Batteries","aisle":"11"},{"item":"Beans: Baked","aisle":"3"},{"item":"Beans: Dry","aisle":"6"},{"item":"Bisquick","aisle":"4"},{"item":"Bleach","aisle":"15"},{"item":"Bouillon Cubes","aisle":"9"},{"item":"Bread","aisle":"18"},{"item":"Bread Crumbs","aisle":"20"},{"item":"Brooms","aisle":"15"},{"item":"Bug Spray","aisle":"13"},{"item":"Butter","aisle":"1"},{"item":"Butter Buds","aisle":"6"},{"item":"Cake Mix","aisle":"7"},{"item":"Candles: Birthday","aisle":"Bakery Case"},{"item":"Candles: Household","aisle":"15"},{"item":"Candy","aisle":"9"},{"item":"Canning Supplies","aisle":"3"},{"item":"Cat Food","aisle":"14"},{"item":"Cat Litter","aisle":"14"},{"item":"Cat Needs","aisle":"14"},{"item":"Cereal","aisle":"4"},{"item":"Charcoal","aisle":"13"},{"item":"Cheese: Grated Parmesan","aisle":"5"},{"item":"Cheese: Prepackaged","aisle":"1"},{"item":"Cheese: Specialty","aisle":"Cheese Case"},{"item":"Cheese: Fresh","aisle":"Deli/Fish"},{"item":"Cherries: Canned","aisle":"7"},{"item":"Cherries: Jar","aisle":"3"},{"item":"Chili Sauce","aisle":"3"},{"item":"Chinese Food: Canned","aisle":"8"},{"item":"Chowder: Clam-Corn-Potato","aisle":"9"},{"item":"Clams: Canned-Minced-Juice","aisle":"2"},{"item":"Coffee","aisle":"7"},{"item":"Cold Remedies","aisle":"12"},{"item":"Cookies","aisle":"18"},{"item":"Cottage Cheese","aisle":"2"},{"item":"Crackers","aisle":"18"},{"item":"Cranberry Sauce","aisle":"9"},{"item":"Croutons","aisle":"3"},{"item":"Deodorant","aisle":"11"},{"item":"Detergent: Dish","aisle":"15"},{"item":"Detergent: Dishwasher","aisle":"15"},{"item":"Detergent: Laundry","aisle":"15"},{"item":"Diapers","aisle":"12"},{"item":"Disinfectant Spray","aisle":"15"},{"item":"Dog Food","aisle":"14"},{"item":"Dog Needs","aisle":"14"},{"item":"Drain Cleaner","aisle":"15"},{"item":"Dried Fruit: Currants-Dates","aisle":"9"},{"item":"Dried Fruit: Prunes-Raisins","aisle":"9"},{"item":"Dye: Fabric","aisle":"15"},{"item":"Eggs","aisle":"2"},{"item":"Electrical Supplies","aisle":"11"},{"item":"Escargot","aisle":"2"},{"item":"Eye Care","aisle":"11"},{"item":"Facial Tissue","aisle":"13"},{"item":"Fabric Softener","aisle":"15"},{"item":"Feminine Needs","aisle":"11"},{"item":"Figs: Dry","aisle":"Produce"},{"item":"Fish: Canned","aisle":"2"},{"item":"Fish: Fresh","aisle":"Deli/Fish"},{"item":"Flour","aisle":"7"},{"item":"Food Coloring","aisle":"7"},{"item":"Freezer Wrap","aisle":"14"},{"item":"Frozen Foods","aisle":"19-20"},{"item":"Fruit: Canned","aisle":"9"},{"item":"Fruit: Fresh","aisle":"Produce"},{"item":"Gloves: Work","aisle":"15"},{"item":"Granola Bars","aisle":"4"},{"item":"Gravy","aisle":"6"},{"item":"Grits","aisle":"4"},{"item":"Ham Glaze","aisle":"3"},{"item":"Hamburger Helper","aisle":"5"},{"item":"Honey","aisle":"4"},{"item":"Household Cleaners","aisle":"15"},{"item":"Ice Cream","aisle":"Produce Corner"},{"item":"Ice Cream Cones","aisle":"Produce Corner"},{"item":"Ice Cubes","aisle":"20"},{"item":"Iced Tea Mix","aisle":"16"},{"item":"Jam & Jelly","aisle":"9"},{"item":"Jello","aisle":"7"},{"item":"Juice","aisle":"6"},{"item":"Ketchup","aisle":"3"},{"item":"Kitchen Utensils","aisle":"9"},{"item":"Kool Aid","aisle":"16"},{"item":"Laundry Detergent","aisle":"15"},{"item":"Laxative","aisle":"12"},{"item":"Lightbulbs","aisle":"11"},{"item":"Mac & Cheese: Packaged","aisle":"5"},{"item":"Magazines","aisle":"Registers"},{"item":"Mayonnaise","aisle":"3"},{"item":"Meat: Canned","aisle":"2"},{"item":"Meat: Fresh","aisle":"Meat"},{"item":"Mexican Food","aisle":"3"},{"item":"Milk: Fluid","aisle":"1"},{"item":"Milk: Evaporated-Powdered","aisle":"7"},{"item":"Molasses","aisle":"4"},{"item":"Mops","aisle":"15"},{"item":"Mouthwash","aisle":"11"},{"item":"Mushrooms: Canned","aisle":"6"},{"item":"Mustard","aisle":"3"},{"item":"Napkins","aisle":"13"},{"item":"Noodles","aisle":"5"},{"item":"Nuts: Baking","aisle":"7"},{"item":"Nuts: Snack","aisle":"10"},{"item":"Nuts: Peanuts in shell","aisle":"Produce"},{"item":"Oil: Canola-Cooking-Corn","aisle":"3"},{"item":"Oil: Olive-Vegetable","aisle":"3"},{"item":"Oil: Motor","aisle":"13"},{"item":"Olives","aisle":"3"},{"item":"Pancake Mix","aisle":"4"},{"item":"Paper: Cups-Plates","aisle":"13"},{"item":"Paper Towels","aisle":"13"},{"item":"Pasta","aisle":"5"},{"item":"Peanut Butter","aisle":"9"},{"item":"Pie Filling","aisle":"7"},{"item":"Pizza: Fresh","aisle":"Market's Kitchen"},{"item":"Plasticware","aisle":"14"},{"item":"Pop Tarts","aisle":"4"},{"item":"Popping Corn","aisle":"10"},{"item":"Potato Chips","aisle":"10"},{"item":"Potatoes: Fresh","aisle":"Produce"},{"item":"Potatoes: Canned-Instant","aisle":"6"},{"item":"Pudding Mix","aisle":"7"},{"item":"Raisins","aisle":"9"},{"item":"Razor Blades","aisle":"12 & Checkout"},{"item":"Rice: Packaged","aisle":"5"},{"item":"Rice Cakes","aisle":"4"},{"item":"Rubbermaid","aisle":"12 & 14"},{"item":"Rubbing Alcohol","aisle":"12"},{"item":"Salad Dressing","aisle":"3"},{"item":"Salt","aisle":"7"},{"item":"Sanitary Napkins","aisle":"11"},{"item":"Sardines: Canned","aisle":"2"},{"item":"Sauce: BBQ-Chili-Steak","aisle":"3"},{"item":"Sauce: Tartar-Tabasco","aisle":"3"},{"item":"Sauce: Soy","aisle":"8"},{"item":"Shake & Bake","aisle":"19"},{"item":"Shaving Needs","aisle":"12"},{"item":"Shoe Care","aisle":"11"},{"item":"Shortening","aisle":"3"},{"item":"Soap: Bar-Body-Hand-Liquid","aisle":"12"},{"item":"Soda","aisle":"17"},{"item":"Soup","aisle":"9"},{"item":"Spaghetti Sauce","aisle":"5"},{"item":"Spam","aisle":"2"},{"item":"Spices","aisle":"7"},{"item":"Sponges","aisle":"15"},{"item":"Stationery","aisle":"12"},{"item":"Steel Wool","aisle":"15"},{"item":"Straws","aisle":"13"},{"item":"Stuffing Mix","aisle":"Back Main Aisle"},{"item":"Sugar","aisle":"7"},{"item":"Taco: Sauce-Shells","aisle":"3"},{"item":"Tea Bags","aisle":"7"},{"item":"Tissue: Bath","aisle":"13"},{"item":"Tissue: Facial","aisle":"13"},{"item":"Tomato: Canned","aisle":"5"},{"item":"Tomato: Paste","aisle":"5"},{"item":"Tomato: Sauce","aisle":"5"},{"item":"Tomato: Fresh","aisle":"Produce"},{"item":"Toothbrushes","aisle":"11"},{"item":"Toothpaste","aisle":"11"},{"item":"Toothpicks","aisle":"13"},{"item":"Tuna: Canned","aisle":"2"},{"item":"Vegetables: Canned","aisle":"6"},{"item":"Vegetables: Fresh","aisle":"Produce"},{"item":"Vinegar","aisle":"3"},{"item":"Vitamins","aisle":"11"},{"item":"Water: Distilled-Spring","aisle":"16"},{"item":"Wax Paper","aisle":"14"},{"item":"Wheat Germ","aisle":"4"},{"item":"Windshield Washer Fluid","aisle":"13"}];
+  <!-- Saved lists -->
+  <dialog class="sheet" id="savedSheet" aria-labelledby="savedTitle">
+    <div class="sheet-head">
+      <div>
+        <h2 id="savedTitle">Saved lists</h2>
+        <p>Keep a weekly staples list and load it any time.</p>
+      </div>
+      <button class="btn sm ghost x" type="button" data-close aria-label="Close">✕</button>
+    </div>
+    <div class="save-new">
+      <input class="field" id="saveName" type="text" placeholder="Name this list (e.g. Weekly staples)" autocomplete="off" />
+      <button class="btn primary" id="saveBtn" type="button" style="flex:none">Save</button>
+    </div>
+    <div class="sheet-body" id="savedList"></div>
+  </dialog>
 
-  // Lynn #82 keyword aliases — maps common grocery terms to an aisle.
-  const LYNN_ALIASES = [
-    // Dairy / aisle 1
-    ["milk","1"],["yogurt","1"],["half and half","1"],["half & half","1"],["cream cheese","1"],["sour cream","1"],["shredded cheese","1"],["sliced cheese","1"],["string cheese","1"],["margarine","1"],["creamer","1"],
-    // Aisle 2 — meat/seafood/canned protein/eggs
-    ["egg","2"],["bacon","Meat"],["sausage","Meat"],["hot dog","Meat"],["hotdog","Meat"],["chicken breast","Meat"],["ground beef","Meat"],["steak","Meat"],["pork chop","Meat"],["deli","Deli/Fish"],["lunch meat","Deli/Fish"],["lunchmeat","Deli/Fish"],["salmon","Deli/Fish"],["shrimp","Deli/Fish"],["fresh fish","Deli/Fish"],["tuna","2"],["sardine","2"],["canned chicken","2"],["canned clam","2"],["spam","2"],["cottage cheese","2"],
-    // Aisle 3 — condiments/oils/pickled
-    ["ketchup","3"],["catsup","3"],["mustard","3"],["mayo","3"],["mayonnaise","3"],["relish","3"],["pickle","3"],["olive","3"],["salad dressing","3"],["ranch","3"],["italian dressing","3"],["vinegar","3"],["olive oil","3"],["canola oil","3"],["vegetable oil","3"],["cooking oil","3"],["bbq sauce","3"],["barbecue","3"],["hot sauce","3"],["tabasco","3"],["sriracha","3"],["taco","3"],["salsa","3"],["refried bean","3"],["tortilla","3"],["baked bean","3"],["crouton","3"],["shortening","3"],
-    // Aisle 4 — breakfast/cereal/bisquick/syrup/granola
-    ["cereal","4"],["oatmeal","4"],["oats","4"],["granola","4"],["pancake","4"],["syrup","4"],["maple syrup","4"],["pop tart","4"],["poptart","4"],["honey","4"],["molasses","4"],["bisquick","4"],["grits","4"],["wheat germ","4"],["rice cake","4"],
-    // Aisle 5 — pasta/sauce/tomato/mac/parmesan
-    ["pasta","5"],["spaghetti","5"],["macaroni","5"],["noodle","5"],["lasagna","5"],["penne","5"],["ziti","5"],["ravioli","5"],["mac and cheese","5"],["mac & cheese","5"],["hamburger helper","5"],["spaghetti sauce","5"],["marinara","5"],["alfredo","5"],["pasta sauce","5"],["tomato sauce","5"],["tomato paste","5"],["diced tomato","5"],["crushed tomato","5"],["parmesan","5"],["rice","5"],
-    // Aisle 6 — juice/canned veg/dry beans/gravy
-    ["juice","6"],["apple juice","6"],["orange juice","6"],["cranberry juice","6"],["dry bean","6"],["canned vegetable","6"],["corn","6"],["green bean","6"],["peas","6"],["carrots","6"],["canned mushroom","6"],["mushroom","6"],["gravy","6"],["instant potato","6"],
-    // Aisle 7 — baking/spices/coffee/tea/sugar/flour
-    ["sugar","7"],["flour","7"],["baking soda","7"],["baking powder","7"],["yeast","7"],["vanilla","7"],["vanilla extract","7"],["cake mix","7"],["brownie mix","7"],["frosting","7"],["chocolate chip","7"],["cocoa","7"],["pie filling","7"],["pudding","7"],["jello","7"],["food coloring","7"],["coffee","7"],["k cup","7"],["k-cup","7"],["tea bag","7"],["tea","7"],["spice","7"],["salt","7"],["pepper","7"],["cinnamon","7"],["baking","7"],["evaporated milk","7"],["condensed milk","7"],["powdered milk","7"],["coffee filter","7"],
-    // Aisle 8 — asian
-    ["soy sauce","8"],["teriyaki","8"],["asian","8"],["chinese","8"],["hoisin","8"],["sesame oil","8"],["ramen","8"],
-    // Aisle 9 — applesauce/jam/pb/soup/candy/dried fruit/canned fruit
-    ["applesauce","9"],["jam","9"],["jelly","9"],["peanut butter","9"],["almond butter","9"],["nutella","9"],["soup","9"],["broth","9"],["stock","9"],["bouillon","9"],["chowder","9"],["canned fruit","9"],["peaches","9"],["pineapple","9"],["mandarin","9"],["raisin","9"],["prune","9"],["date","9"],["dried fruit","9"],["cranberry sauce","9"],["candy","9"],["chocolate bar","9"],["gum","9"],["mint","9"],
-    // Aisle 10 — chips / snacks
-    ["chip","10"],["potato chip","10"],["tortilla chip","10"],["pretzel","10"],["popcorn","10"],["popping corn","10"],["snack nut","10"],["trail mix","10"],["cashew","10"],["almond","10"],["pistachio","10"],
-    // Aisle 11 — personal care / vitamins / batteries / lightbulbs
-    ["toothpaste","11"],["toothbrush","11"],["mouthwash","11"],["floss","11"],["deodorant","11"],["vitamin","11"],["battery","11"],["batteries","11"],["lightbulb","11"],["light bulb","11"],["tampon","11"],["pad","11"],["feminine","11"],["eye drop","11"],["contact solution","11"],["shoe polish","11"],["shoe lace","11"],
-    // Aisle 12 — baby / pharmacy / shaving / soap / stationery
-    ["diaper","12"],["wipe","12"],["baby","12"],["formula","12"],["razor","12"],["shaving cream","12"],["soap","12"],["body wash","12"],["hand soap","12"],["rubbing alcohol","12"],["peroxide","12"],["bandage","12"],["band aid","12"],["band-aid","12"],["tylenol","12"],["advil","12"],["ibuprofen","12"],["aspirin","12"],["cough","12"],["cold medicine","12"],["laxative","12"],["pen","12"],["pencil","12"],["notebook","12"],["stationery","12"],["tape","12"],
-    // Aisle 13 — paper goods / automotive / bbq
-    ["paper towel","13"],["bath tissue","13"],["toilet paper","13"],["facial tissue","13"],["kleenex","13"],["napkin","13"],["paper plate","13"],["paper cup","13"],["straw","13"],["toothpick","13"],["motor oil","13"],["charcoal","13"],["lighter fluid","13"],["bug spray","13"],["insect","13"],["windshield","13"],["automotive","13"],["bakeware","13"],["baking pan","13"],
-    // Aisle 14 — foil / wraps / pet / bags / plasticware
-    ["aluminum foil","14"],["foil","14"],["plastic wrap","14"],["saran","14"],["wax paper","14"],["freezer wrap","14"],["parchment","14"],["ziploc","14"],["sandwich bag","14"],["trash bag","14"],["garbage bag","14"],["lunch bag","14"],["plasticware","14"],["paper plate","14"],["cat food","14"],["cat litter","14"],["dog food","14"],["pet","14"],
-    // Aisle 15 — cleaning / laundry
-    ["bleach","15"],["ammonia","15"],["laundry detergent","15"],["laundry","15"],["fabric softener","15"],["dryer sheet","15"],["dish soap","15"],["dish detergent","15"],["dishwasher","15"],["cascade","15"],["tide","15"],["clorox","15"],["windex","15"],["lysol","15"],["disinfectant","15"],["air freshener","15"],["febreze","15"],["sponge","15"],["broom","15"],["mop","15"],["steel wool","15"],["brillo","15"],["cleaner","15"],["drain","15"],["household","15"],["candle","15"],
-    // Aisle 16 — water / drink mixes
-    ["water","16"],["bottled water","16"],["sparkling water","16"],["seltzer","16"],["gatorade","16"],["powerade","16"],["kool aid","16"],["kool-aid","16"],["iced tea mix","16"],["lemonade mix","16"],["drink mix","16"],
-    // Aisle 17 — soda
-    ["soda","17"],["pop","17"],["coke","17"],["coca cola","17"],["coca-cola","17"],["pepsi","17"],["sprite","17"],["dr pepper","17"],["root beer","17"],["ginger ale","17"],["mountain dew","17"],["fanta","17"],["seven up","17"],["7up","17"],
-    // Aisle 18 — bread / crackers / cookies
-    ["bread","18"],["bun","18"],["roll","18"],["tortilla wrap","18"],["pita","18"],["english muffin","18"],["cookie","18"],["oreo","18"],["cracker","18"],["saltine","18"],["goldfish","18"],
-    // Aisle 19 — shake & bake / frozen
-    ["shake and bake","19"],["shake & bake","19"],
-    // Aisle 19-20 — frozen
-    ["frozen","19-20"],["frozen pizza","19-20"],["frozen vegetable","19-20"],["frozen dinner","19-20"],["waffle","19-20"],["tv dinner","19-20"],["popsicle","19-20"],["stouffer","19-20"],
-    // Aisle 20 — bread crumbs / ice cubes
-    ["bread crumb","20"],["breadcrumb","20"],["panko","20"],["ice cube","20"],["ice bag","20"],
-    // Produce
-    ["apple","Produce"],["banana","Produce"],["orange","Produce"],["lemon","Produce"],["lime","Produce"],["grape","Produce"],["strawberr","Produce"],["blueberr","Produce"],["raspberr","Produce"],["melon","Produce"],["watermelon","Produce"],["avocado","Produce"],["lettuce","Produce"],["spinach","Produce"],["kale","Produce"],["salad","Produce"],["cucumber","Produce"],["pepper","Produce"],["onion","Produce"],["garlic","Produce"],["potato","Produce"],["tomato","Produce"],["carrot","Produce"],["celery","Produce"],["broccoli","Produce"],["cauliflower","Produce"],["mushroom","Produce"],["corn on the cob","Produce"],["herb","Produce"],["cilantro","Produce"],["parsley","Produce"],["basil","Produce"],["ginger","Produce"],["produce","Produce"],["fruit","Produce"],["vegetable","Produce"],
-    // Ice cream / cones
-    ["ice cream","Produce Corner"],["ice cream cone","Produce Corner"],
-    // Bakery
-    ["bagel","Bakery"],["donut","Bakery"],["doughnut","Bakery"],["pastry","Bakery"],["muffin","Bakery"],["croissant","Bakery"],["cake","Bakery"],["pie","Bakery"],["fresh bread","Bakery"],["birthday candle","Bakery Case"],
-    // Cheese Case / Pizza / Stuffing / Magazines
-    ["specialty cheese","Cheese Case"],["brie","Cheese Case"],["gouda","Cheese Case"],["feta","Cheese Case"],["pizza","Market's Kitchen"],["stuffing","Back Main Aisle"],["magazine","Registers"],["gum","Registers"]
-  ];
+  <div class="toast" id="toast" role="status" aria-live="polite"><span id="toastMsg"></span><button id="toastUndo" type="button" hidden>Undo</button></div>
 
-  // Middleton #45 embedded data and keyword aliases (aisle numbers differ substantially from Lynn).
-  const MIDDLETON_EMBEDDED = [{"item":"Air Freshener","aisle":"12"},{"item":"Aluminum Foil","aisle":"10"},{"item":"Ammonia","aisle":"12"},{"item":"Applesauce","aisle":"3"},{"item":"Automotive","aisle":"12"},{"item":"Baby Food","aisle":"9"},{"item":"Baby Powder","aisle":"9"},{"item":"Bags: Lunch-Sandwich","aisle":"10"},{"item":"Bags: Garbage-Trash","aisle":"10"},{"item":"Bakery: Fresh","aisle":"Front Corner"},{"item":"Bakery: Packaged","aisle":"14"},{"item":"Bakeware","aisle":"10"},{"item":"Baking Needs","aisle":"5"},{"item":"Barbecue Sauce","aisle":"2"},{"item":"Bath Tissue","aisle":"9"},{"item":"Batteries","aisle":"8"},{"item":"Beans: Baked","aisle":"2"},{"item":"Beans: Dry","aisle":"6"},{"item":"Bisquick","aisle":"3"},{"item":"Bleach","aisle":"12"},{"item":"Bouillon Cubes","aisle":"1"},{"item":"Bread","aisle":"13"},{"item":"Bread Crumbs","aisle":"Above Meat Case"},{"item":"Brooms","aisle":"12"},{"item":"Bug Spray","aisle":"12"},{"item":"Butter","aisle":"Dairy"},{"item":"Butter Buds","aisle":"6"},{"item":"Cake Mix","aisle":"5"},{"item":"Candles: Birthday","aisle":"Bakery Case"},{"item":"Candles: Household","aisle":"12"},{"item":"Candy","aisle":"7"},{"item":"Canning Supplies","aisle":"2"},{"item":"Cat Food","aisle":"10"},{"item":"Cat Litter","aisle":"10"},{"item":"Cat Needs","aisle":"10"},{"item":"Cereal","aisle":"3"},{"item":"Charcoal","aisle":"12"},{"item":"Cheese: Grated Parmesan","aisle":"4"},{"item":"Cheese: Prepackaged","aisle":"Dairy"},{"item":"Cheese: Specialty","aisle":"Cheese Case"},{"item":"Cheese: Fresh","aisle":"Deli/Fish"},{"item":"Cherries: Canned","aisle":"5"},{"item":"Cherries: Jar","aisle":"3"},{"item":"Chili Sauce","aisle":"Above Frozen Seafood"},{"item":"Chinese Food: Canned","aisle":"1"},{"item":"Chowder: Clam-Corn-Potato","aisle":"1"},{"item":"Clams: Canned-Minced-Juice","aisle":"2"},{"item":"Coffee","aisle":"5"},{"item":"Cold Remedies","aisle":"9"},{"item":"Cookies","aisle":"13"},{"item":"Cottage Cheese","aisle":"Dairy"},{"item":"Crackers","aisle":"13"},{"item":"Cranberry Sauce","aisle":"3"},{"item":"Croutons","aisle":"2"},{"item":"Deodorant","aisle":"9"},{"item":"Detergent: Dish","aisle":"12"},{"item":"Detergent: Dishwasher","aisle":"12"},{"item":"Detergent: Laundry","aisle":"12"},{"item":"Diapers","aisle":"9"},{"item":"Disinfectant Spray","aisle":"12"},{"item":"Dog Food","aisle":"10"},{"item":"Dog Needs","aisle":"10"},{"item":"Drain Cleaner","aisle":"12"},{"item":"Dried Fruit: Currants-Dates","aisle":"7"},{"item":"Dried Fruit: Prunes-Raisins","aisle":"7"},{"item":"Dye: Fabric","aisle":"12"},{"item":"Eggs","aisle":"1"},{"item":"Electrical Supplies","aisle":"8"},{"item":"Escargot","aisle":"2"},{"item":"Eye Care","aisle":"9"},{"item":"Facial Tissue","aisle":"9"},{"item":"Fabric Softener","aisle":"12"},{"item":"Feminine Needs","aisle":"8"},{"item":"Fish: Canned","aisle":"2"},{"item":"Fish: Fresh","aisle":"Deli/Fish"},{"item":"Flour","aisle":"5"},{"item":"Food Coloring","aisle":"5"},{"item":"Freezer Wrap","aisle":"10"},{"item":"Frozen Foods","aisle":"14-15"},{"item":"Fruit: Canned","aisle":"3"},{"item":"Fruit: Fresh","aisle":"Produce"},{"item":"Gloves: Work","aisle":"12"},{"item":"Grape Juice","aisle":"6"},{"item":"Granola Bars","aisle":"3"},{"item":"Gravy","aisle":"6"},{"item":"Grits","aisle":"3"},{"item":"Ham Glaze","aisle":"3"},{"item":"Hamburger Helper","aisle":"4"},{"item":"Honey","aisle":"3"},{"item":"Household Cleaners","aisle":"12"},{"item":"Ice Cream","aisle":"Freezer Wall"},{"item":"Ice Cream Cones","aisle":"Frozen Corner"},{"item":"Ice Cubes","aisle":"14"},{"item":"Iced Tea Mix","aisle":"6"},{"item":"Jam & Jelly","aisle":"13"},{"item":"Jello","aisle":"5"},{"item":"Juice","aisle":"6"},{"item":"Ketchup","aisle":"2"},{"item":"Kitchen Gadgets","aisle":"10"},{"item":"Kool Aid","aisle":"6"},{"item":"Kosher Foods","aisle":"2"},{"item":"Laundry Detergent","aisle":"12"},{"item":"Laxative","aisle":"9"},{"item":"Lightbulbs","aisle":"8"},{"item":"Mac & Cheese: Packaged","aisle":"4"},{"item":"Magazines","aisle":"Registers"},{"item":"Mayonnaise","aisle":"2"},{"item":"Meat: Canned","aisle":"2"},{"item":"Meat: Fresh","aisle":"Meat"},{"item":"Mexican Food","aisle":"2"},{"item":"Milk: Fluid","aisle":"Dairy"},{"item":"Milk: Evaporated-Powdered","aisle":"5"},{"item":"Molasses","aisle":"3"},{"item":"Mops","aisle":"12"},{"item":"Mouthwash","aisle":"9"},{"item":"Mushrooms: Canned","aisle":"6"},{"item":"Mustard","aisle":"2"},{"item":"Napkins","aisle":"8"},{"item":"Noodles","aisle":"4"},{"item":"Nuts: Baking","aisle":"5"},{"item":"Nuts: Snack","aisle":"2"},{"item":"Nuts: Peanuts in shell","aisle":"Produce"},{"item":"Oil: Canola-Cooking-Corn","aisle":"2"},{"item":"Oil: Olive-Vegetable","aisle":"2"},{"item":"Oil: Motor","aisle":"12"},{"item":"Olives","aisle":"2"},{"item":"Pancake Mix","aisle":"3"},{"item":"Paper: Cups-Plates","aisle":"10"},{"item":"Paper Towels","aisle":"8"},{"item":"Pasta","aisle":"4"},{"item":"Peanut Butter","aisle":"13"},{"item":"Pie Filling","aisle":"5"},{"item":"Pizza: Fresh","aisle":"Deli"},{"item":"Plasticware","aisle":"10"},{"item":"Pop Tarts","aisle":"3"},{"item":"Popping Corn","aisle":"7"},{"item":"Potato Chips","aisle":"7"},{"item":"Potatoes: Fresh","aisle":"Produce"},{"item":"Potatoes: Canned-Instant","aisle":"6"},{"item":"Pudding Mix","aisle":"5"},{"item":"Raisins","aisle":"7"},{"item":"Razor Blades","aisle":"Checkout"},{"item":"Rice: Packaged","aisle":"4"},{"item":"Rice Cakes","aisle":"3"},{"item":"Rubbermaid","aisle":"10"},{"item":"Rubbing Alcohol","aisle":"9"},{"item":"Salad Dressing","aisle":"2"},{"item":"Salt","aisle":"5"},{"item":"Sanitary Napkins","aisle":"9"},{"item":"Sardines: Canned","aisle":"3"},{"item":"Sauce: BBQ-Chili-Steak","aisle":"2"},{"item":"Sauce: Tartar","aisle":"2"},{"item":"Sauce: Soy","aisle":"1"},{"item":"Shake & Bake","aisle":"Above Meat Case"},{"item":"Shaving Needs","aisle":"8"},{"item":"Shoe Care","aisle":"9"},{"item":"Shortening","aisle":"2"},{"item":"Soap: Bar-Body-Hand-Liquid","aisle":"9"},{"item":"Soda","aisle":"11"},{"item":"Soup","aisle":"1"},{"item":"Spaghetti Sauce","aisle":"4"},{"item":"Spam","aisle":"2"},{"item":"Spices","aisle":"5"},{"item":"Sponges","aisle":"12"},{"item":"Stationery","aisle":"8"},{"item":"Steel Wool","aisle":"12"},{"item":"Straws","aisle":"8"},{"item":"Stuffing Mix","aisle":"Above Meat Case"},{"item":"Sugar","aisle":"5"},{"item":"Taco: Sauce-Shells","aisle":"2"},{"item":"Tea Bags","aisle":"5"},{"item":"Tissue: Bath-Facial","aisle":"9"},{"item":"Tomato: Canned","aisle":"4"},{"item":"Tomato: Paste","aisle":"4"},{"item":"Tomato: Sauce","aisle":"4"},{"item":"Tomato: Fresh","aisle":"Produce"},{"item":"Toothbrushes","aisle":"8"},{"item":"Toothpaste","aisle":"8"},{"item":"Toothpicks","aisle":"10"},{"item":"Tuna: Canned","aisle":"2"},{"item":"Vacuum Cleaner Bags","aisle":"12"},{"item":"Vegetables: Canned","aisle":"6"},{"item":"Vegetables: Fresh","aisle":"Produce"},{"item":"Vinegar","aisle":"2"},{"item":"Vitamins","aisle":"8"},{"item":"Water: Distilled-Spring","aisle":"11"},{"item":"Wax Paper","aisle":"10"},{"item":"Wheat Germ","aisle":"3"},{"item":"Windshield Washer Fluid","aisle":"12"}];
-
-  const MIDDLETON_ALIASES = [
-    // Dairy Aisle
-    ["milk","Dairy"],["yogurt","Dairy"],["half and half","Dairy"],["half & half","Dairy"],["cream cheese","Dairy"],["sour cream","Dairy"],["shredded cheese","Dairy"],["sliced cheese","Dairy"],["string cheese","Dairy"],["margarine","Dairy"],["creamer","Dairy"],["butter","Dairy"],["cottage cheese","Dairy"],
-    // Aisle 1 — soup / asian / eggs
-    ["egg","1"],["soup","1"],["broth","1"],["stock","1"],["bouillon","1"],["chowder","1"],["soy sauce","1"],["teriyaki","1"],["asian","1"],["chinese","1"],["hoisin","1"],["sesame oil","1"],["ramen","1"],
-    // Aisle 2 — condiments/oils/canned protein/pickled
-    ["ketchup","2"],["catsup","2"],["mustard","2"],["mayo","2"],["mayonnaise","2"],["relish","2"],["pickle","2"],["olive","2"],["salad dressing","2"],["ranch","2"],["italian dressing","2"],["vinegar","2"],["olive oil","2"],["canola oil","2"],["vegetable oil","2"],["cooking oil","2"],["bbq sauce","2"],["barbecue","2"],["hot sauce","2"],["tabasco","2"],["sriracha","2"],["taco","2"],["salsa","2"],["refried bean","2"],["tortilla","2"],["baked bean","2"],["crouton","2"],["shortening","2"],["tuna","2"],["canned chicken","2"],["canned clam","2"],["spam","2"],["kosher","2"],["escargot","2"],["snack nut","2"],["canned meat","2"],
-    // Aisle 3 — breakfast/cereal/applesauce/canned fruit/cranberry/honey
-    ["cereal","3"],["oatmeal","3"],["oats","3"],["granola","3"],["pancake","3"],["syrup","3"],["maple syrup","3"],["pop tart","3"],["poptart","3"],["honey","3"],["molasses","3"],["bisquick","3"],["grits","3"],["wheat germ","3"],["rice cake","3"],["applesauce","3"],["canned fruit","3"],["peaches","3"],["pineapple","3"],["mandarin","3"],["cranberry sauce","3"],["sardine","3"],["ham glaze","3"],
-    // Aisle 4 — pasta/tomato/mac/parmesan/spaghetti sauce
-    ["pasta","4"],["spaghetti","4"],["macaroni","4"],["noodle","4"],["lasagna","4"],["penne","4"],["ziti","4"],["ravioli","4"],["mac and cheese","4"],["mac & cheese","4"],["hamburger helper","4"],["spaghetti sauce","4"],["marinara","4"],["alfredo","4"],["pasta sauce","4"],["tomato sauce","4"],["tomato paste","4"],["diced tomato","4"],["crushed tomato","4"],["parmesan","4"],["rice","4"],
-    // Aisle 5 — baking/spices/coffee/tea/sugar/flour/jello/pudding
-    ["sugar","5"],["flour","5"],["baking soda","5"],["baking powder","5"],["yeast","5"],["vanilla","5"],["vanilla extract","5"],["cake mix","5"],["brownie mix","5"],["frosting","5"],["chocolate chip","5"],["cocoa","5"],["pie filling","5"],["pudding","5"],["jello","5"],["food coloring","5"],["coffee","5"],["k cup","5"],["k-cup","5"],["tea bag","5"],["tea","5"],["spice","5"],["salt","5"],["pepper","5"],["cinnamon","5"],["baking","5"],["evaporated milk","5"],["condensed milk","5"],["powdered milk","5"],["coffee filter","5"],
-    // Aisle 6 — juice/canned veg/dry beans/gravy/drink mixes
-    ["juice","6"],["apple juice","6"],["orange juice","6"],["grape juice","6"],["cranberry juice","6"],["dry bean","6"],["canned vegetable","6"],["corn","6"],["green bean","6"],["peas","6"],["canned mushroom","6"],["mushroom","6"],["gravy","6"],["instant potato","6"],["kool aid","6"],["kool-aid","6"],["iced tea mix","6"],["lemonade mix","6"],["drink mix","6"],
-    // Aisle 7 — chips/snacks/candy/dried fruit
-    ["chip","7"],["potato chip","7"],["tortilla chip","7"],["pretzel","7"],["popcorn","7"],["popping corn","7"],["trail mix","7"],["cashew","7"],["almond","7"],["pistachio","7"],["candy","7"],["chocolate bar","7"],["raisin","7"],["prune","7"],["date","7"],["dried fruit","7"],
-    // Aisle 8 — batteries/lightbulbs/paper towels/napkins/stationery/shaving/toothbrushes/vitamins/feminine
-    ["battery","8"],["batteries","8"],["lightbulb","8"],["light bulb","8"],["vitamin","8"],["paper towel","8"],["napkin","8"],["straw","8"],["razor","8"],["shaving cream","8"],["toothpaste","8"],["toothbrush","8"],["floss","8"],["tampon","8"],["pad","8"],["feminine","8"],["pen","8"],["pencil","8"],["notebook","8"],["stationery","8"],["tape","8"],["electrical","8"],
-    // Aisle 9 — pharmacy/soap/deodorant/bath tissue/facial tissue/baby/shoe care/eye care
-    ["diaper","9"],["wipe","9"],["baby","9"],["formula","9"],["soap","9"],["body wash","9"],["hand soap","9"],["rubbing alcohol","9"],["peroxide","9"],["bandage","9"],["band aid","9"],["band-aid","9"],["tylenol","9"],["advil","9"],["ibuprofen","9"],["aspirin","9"],["cough","9"],["cold medicine","9"],["laxative","9"],["deodorant","9"],["mouthwash","9"],["bath tissue","9"],["toilet paper","9"],["facial tissue","9"],["kleenex","9"],["eye drop","9"],["contact solution","9"],["shoe polish","9"],["shoe lace","9"],
-    // Aisle 10 — foil/wraps/pet/bags/plasticware/paper cups&plates/bakeware
-    ["aluminum foil","10"],["foil","10"],["plastic wrap","10"],["saran","10"],["wax paper","10"],["freezer wrap","10"],["parchment","10"],["ziploc","10"],["sandwich bag","10"],["trash bag","10"],["garbage bag","10"],["lunch bag","10"],["plasticware","10"],["paper plate","10"],["paper cup","10"],["cat food","10"],["cat litter","10"],["dog food","10"],["pet","10"],["toothpick","10"],["bakeware","10"],["baking pan","10"],["kitchen gadget","10"],["rubbermaid","10"],
-    // Aisle 11 — soda/water
-    ["soda","11"],["pop","11"],["coke","11"],["coca cola","11"],["coca-cola","11"],["pepsi","11"],["sprite","11"],["dr pepper","11"],["root beer","11"],["ginger ale","11"],["mountain dew","11"],["fanta","11"],["seven up","11"],["7up","11"],["water","11"],["bottled water","11"],["sparkling water","11"],["seltzer","11"],["gatorade","11"],["powerade","11"],
-    // Aisle 12 — cleaning/laundry/automotive/bug spray/motor oil
-    ["bleach","12"],["ammonia","12"],["laundry detergent","12"],["laundry","12"],["fabric softener","12"],["dryer sheet","12"],["dish soap","12"],["dish detergent","12"],["dishwasher","12"],["cascade","12"],["tide","12"],["clorox","12"],["windex","12"],["lysol","12"],["disinfectant","12"],["air freshener","12"],["febreze","12"],["sponge","12"],["broom","12"],["mop","12"],["steel wool","12"],["brillo","12"],["cleaner","12"],["drain","12"],["household","12"],["candle","12"],["motor oil","12"],["automotive","12"],["charcoal","12"],["lighter fluid","12"],["bug spray","12"],["insect","12"],["windshield","12"],["vacuum","12"],
-    // Aisle 13 — bread/crackers/cookies/peanut butter/jam
-    ["bread","13"],["bun","13"],["roll","13"],["tortilla wrap","13"],["pita","13"],["english muffin","13"],["cookie","13"],["oreo","13"],["cracker","13"],["saltine","13"],["goldfish","13"],["peanut butter","13"],["almond butter","13"],["nutella","13"],["jam","13"],["jelly","13"],
-    // Aisle 14-15 — frozen
-    ["frozen","14-15"],["frozen pizza","14-15"],["frozen vegetable","14-15"],["frozen dinner","14-15"],["waffle","14-15"],["tv dinner","14-15"],["popsicle","14-15"],["stouffer","14-15"],
-    // Aisle 14 — ice cubes
-    ["ice cube","14"],["ice bag","14"],
-    // Above Meat Case — bread crumbs, shake & bake, stuffing
-    ["bread crumb","Above Meat Case"],["breadcrumb","Above Meat Case"],["panko","Above Meat Case"],["shake and bake","Above Meat Case"],["shake & bake","Above Meat Case"],["stuffing","Above Meat Case"],
-    // Produce
-    ["apple","Produce"],["banana","Produce"],["orange","Produce"],["lemon","Produce"],["lime","Produce"],["grape","Produce"],["strawberr","Produce"],["blueberr","Produce"],["raspberr","Produce"],["melon","Produce"],["watermelon","Produce"],["avocado","Produce"],["lettuce","Produce"],["spinach","Produce"],["kale","Produce"],["salad","Produce"],["cucumber","Produce"],["bell pepper","Produce"],["onion","Produce"],["garlic","Produce"],["potato","Produce"],["tomato","Produce"],["carrot","Produce"],["celery","Produce"],["broccoli","Produce"],["cauliflower","Produce"],["corn on the cob","Produce"],["herb","Produce"],["cilantro","Produce"],["parsley","Produce"],["basil","Produce"],["ginger","Produce"],["produce","Produce"],["fruit","Produce"],["vegetable","Produce"],
-    // Ice cream / cones
-    ["ice cream","Freezer Wall"],["ice cream cone","Frozen Corner"],
-    // Bakery / Cheese Case / Deli / Magazines / Razor
-    ["bagel","Bakery"],["donut","Bakery"],["doughnut","Bakery"],["pastry","Bakery"],["muffin","Bakery"],["croissant","Bakery"],["cake","Bakery"],["pie","Bakery"],["fresh bread","Bakery"],["birthday candle","Bakery Case"],
-    ["specialty cheese","Cheese Case"],["brie","Cheese Case"],["gouda","Cheese Case"],["feta","Cheese Case"],
-    ["pizza","Deli"],["fresh fish","Deli/Fish"],["salmon","Deli/Fish"],["shrimp","Deli/Fish"],["lunch meat","Deli/Fish"],["lunchmeat","Deli/Fish"],["deli","Deli/Fish"],
-    ["bacon","Meat"],["sausage","Meat"],["hot dog","Meat"],["hotdog","Meat"],["chicken breast","Meat"],["ground beef","Meat"],["steak","Meat"],["pork chop","Meat"],
-    ["magazine","Registers"],["gum","Registers"],["razor blade","Checkout"]
-  ];
-
-  const LOCATIONS = {
-    lynn: {
-      id: "lynn",
-      name: "Lynn #82",
-      subtitle: "40 Federal Street, Lynn, MA",
-      file: "mb_lynn_82_aisles.json",
-      embedded: LYNN_EMBEDDED,
-      aliases: LYNN_ALIASES
-    },
-    middleton: {
-      id: "middleton",
-      name: "Middleton #45",
-      subtitle: "230 South Main Street, Middleton, MA",
-      file: "mb_middleton_45_aisles.json",
-      embedded: MIDDLETON_EMBEDDED,
-      aliases: MIDDLETON_ALIASES
-    }
-  };
-
-  let currentLocationId = localStorage.getItem('mbLocationId') || 'lynn';
-  if (!LOCATIONS[currentLocationId]) currentLocationId = 'lynn';
-  function getCurrentLocation() { return LOCATIONS[currentLocationId]; }
-
-  // Infer aisle for an arbitrary item name by scanning the guide + aliases.
-  // Returns aisle string, or null if nothing matched.
-  function inferAisle(rawName) {
-    if (!rawName) return null;
-    const name = rawName.toLowerCase().trim();
-    if (!name) return null;
-
-    // 1) exact match against guide items
-    const exact = aisles.find(a => a.item.toLowerCase() === name);
-    if (exact) return exact.aisle;
-
-    // 2) substring match on guide item tokens (strip punctuation, compare word-by-word)
-    //    score = length of the longest guide keyword found in the user's text
-    let best = { score: 0, aisle: null };
-    const nameClean = ' ' + name.replace(/[^a-z0-9& ]+/g, ' ').replace(/\s+/g, ' ').trim() + ' ';
-
-    for (const entry of aisles) {
-      // guide items like "Cheese: Grated Parmesan" -> tokens: "cheese grated parmesan", plus each colon-separated phrase
-      const raw = entry.item.toLowerCase();
-      const phrases = raw.split(/[:,]/).map(s => s.trim()).filter(Boolean);
-      // also try each hyphen-split alternative in phrases (e.g. "Canola-Cooking-Corn")
-      const candidates = new Set();
-      for (const p of phrases) {
-        candidates.add(p);
-        for (const piece of p.split(/[-/&]/)) {
-          const t = piece.trim();
-          if (t.length >= 3) candidates.add(t);
-        }
-      }
-      for (const cand of candidates) {
-        if (cand.length < 3) continue;
-        if (nameClean.includes(' ' + cand + ' ') || nameClean.includes(cand)) {
-          if (cand.length > best.score) best = { score: cand.length, aisle: entry.aisle };
-        }
-      }
-    }
-
-    // 3) keyword alias table (for brand names / common products not in the guide)
-    for (const [kw, aisle] of getCurrentLocation().aliases) {
-      if (nameClean.includes(kw)) {
-        if (kw.length > best.score) best = { score: kw.length, aisle };
-      }
-    }
-
-    return best.aisle;
-  }
-  
-  // Initialize the app
-  async function init() {
-    // Load saved state
-    loadState();
-    
-    // Set up event listeners
-    setupEventListeners();
-    setInputMode('search');
-    updateReverseOrderButton();
-    updateLocationHeader();
-    
-    // Try to load aisle data
-    await loadAisleData();
-    
-    // Initialize saved lists panel (hidden by default)
-    renderSavedLists();
-  }
-
-  function openMasterDatabase() {
-    if (!('indexedDB' in window)) {
-      return Promise.reject(new Error('This browser does not support IndexedDB'));
-    }
-    
-    if (masterDbPromise) {
-      return masterDbPromise;
-    }
-    
-    masterDbPromise = new Promise((resolve, reject) => {
-      const request = indexedDB.open(MASTER_DB.name, MASTER_DB.version);
-      
-      request.onupgradeneeded = (event) => {
-        const db = event.target.result;
-        if (!db.objectStoreNames.contains(MASTER_DB.store)) {
-          db.createObjectStore(MASTER_DB.store, { keyPath: 'key' });
-        }
-      };
-      
-      request.onsuccess = () => {
-        const db = request.result;
-        db.onversionchange = () => {
-          db.close();
-          masterDbPromise = null;
-        };
-        resolve(db);
-      };
-      
-      request.onerror = () => {
-        masterDbPromise = null;
-        reject(request.error || new Error('Unable to open the search database'));
-      };
-    });
-    
-    return masterDbPromise;
-  }
-
-  function buildMasterItemRecord(itemName, aisle, options = {}) {
-    const cleanName = (itemName || '').toString().trim();
-    if (!cleanName) return null;
-    
-    const normalizedAisle = normalizeAisle(aisle);
-    const originalAisle = (options.originalAisle || normalizedAisle || 'Unknown').toString().trim() || 'Unknown';
-    
-    return {
-      key: cleanName.toLowerCase(),
-      item: cleanName,
-      aisle: normalizedAisle,
-      originalAisle,
-      updatedAt: options.updatedAt || new Date().toISOString(),
-      source: options.source || 'user'
-    };
-  }
-
-  async function getAllMasterItems() {
-    const db = await openMasterDatabase();
-    
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(MASTER_DB.store, 'readonly');
-      const request = tx.objectStore(MASTER_DB.store).getAll();
-      
-      request.onsuccess = () => {
-        const records = (request.result || []).sort((a, b) => a.item.localeCompare(b.item));
-        resolve(records);
-      };
-      
-      request.onerror = () => {
-        reject(request.error || tx.error || new Error('Unable to read the search database'));
-      };
-    });
-  }
-
-  async function getMasterItemByName(itemName) {
-    const cleanName = (itemName || '').toString().trim().toLowerCase();
-    if (!cleanName) return null;
-    
-    const db = await openMasterDatabase();
-    
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(MASTER_DB.store, 'readonly');
-      const request = tx.objectStore(MASTER_DB.store).get(cleanName);
-      
-      request.onsuccess = () => resolve(request.result || null);
-      request.onerror = () => reject(request.error || tx.error || new Error('Unable to read the search database'));
-    });
-  }
-
-  async function putMasterItemRecord(record) {
-    const db = await openMasterDatabase();
-    
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(MASTER_DB.store, 'readwrite');
-      const request = tx.objectStore(MASTER_DB.store).put(record);
-      
-      request.onsuccess = () => resolve(record);
-      request.onerror = () => reject(request.error || tx.error || new Error('Unable to save to the search database'));
-    });
-  }
-
-  async function upsertMasterItem(itemName, aisle, options = {}) {
-    const record = buildMasterItemRecord(itemName, aisle, options);
-    if (!record) {
-      return { added: false, updated: false };
-    }
-    
-    const existing = await getMasterItemByName(record.item);
-    if (!existing) {
-      await putMasterItemRecord(record);
-      return { added: true, updated: false };
-    }
-    
-    const nextRecord = { ...existing };
-    let changed = false;
-    const incomingKnownAisle = record.aisle && record.aisle !== 'Unknown';
-    const existingKnownAisle = nextRecord.aisle && nextRecord.aisle !== 'Unknown';
-    
-    if (record.item !== nextRecord.item) {
-      nextRecord.item = record.item;
-      changed = true;
-    }
-    
-    if (options.forceAisle) {
-      if (nextRecord.aisle !== record.aisle || nextRecord.originalAisle !== record.originalAisle) {
-        nextRecord.aisle = record.aisle;
-        nextRecord.originalAisle = record.originalAisle;
-        changed = true;
-      }
-    } else if (!existingKnownAisle && incomingKnownAisle) {
-      nextRecord.aisle = record.aisle;
-      nextRecord.originalAisle = record.originalAisle;
-      changed = true;
-    } else if (options.overwriteKnownAisle && incomingKnownAisle && nextRecord.aisle !== record.aisle) {
-      nextRecord.aisle = record.aisle;
-      nextRecord.originalAisle = record.originalAisle;
-      changed = true;
-    } else if (!nextRecord.aisle) {
-      nextRecord.aisle = record.aisle;
-      nextRecord.originalAisle = record.originalAisle;
-      changed = true;
-    }
-    
-    if (!changed) {
-      return { added: false, updated: false };
-    }
-    
-    nextRecord.updatedAt = options.updatedAt || new Date().toISOString();
-    nextRecord.source = options.source || nextRecord.source || 'user';
-    await putMasterItemRecord(nextRecord);
-    
-    return { added: false, updated: true };
-  }
-
-  async function seedMasterItems(rows, options = {}) {
-    let addedCount = 0;
-    let updatedCount = 0;
-    
-    for (const row of rows || []) {
-      const result = await upsertMasterItem(
-        row.item || row.name || '',
-        row.aisle || row.section || row.location || 'Unknown',
-        {
-          source: options.source || 'seed',
-          overwriteKnownAisle: !!options.overwriteKnownAisle,
-          forceAisle: !!options.forceAisle,
-          originalAisle: row.originalAisle || row.aisle || row.section || row.location || 'Unknown',
-          updatedAt: options.updatedAt
-        }
-      );
-      
-      if (result.added) addedCount++;
-      if (result.updated) updatedCount++;
-    }
-    
-    return { addedCount, updatedCount };
-  }
-
-  function collectLegacyMasterRows() {
-    const rows = [];
-    
-    try {
-      const corrections = localStorage.getItem('mbAisleCorrections');
-      if (corrections) {
-        const correctionMap = JSON.parse(corrections);
-        Object.keys(correctionMap).forEach(itemName => {
-          rows.push({
-            item: itemName,
-            aisle: correctionMap[itemName],
-            originalAisle: correctionMap[itemName]
-          });
-        });
-      }
-    } catch (error) {
-      console.error('Error reading legacy aisle corrections:', error);
-    }
-    
-    try {
-      const masterList = localStorage.getItem('mbMasterList');
-      if (masterList) {
-        const masterListData = JSON.parse(masterList);
-        masterListData.forEach(item => {
-          rows.push({
-            item: item.item,
-            aisle: item.aisle || item.originalAisle || 'Unknown',
-            originalAisle: item.originalAisle || item.aisle || 'Unknown'
-          });
-        });
-      }
-    } catch (error) {
-      console.error('Error reading legacy master list:', error);
-    }
-    
-    return rows;
-  }
-
-  async function migrateLegacyMasterData() {
-    if (localStorage.getItem(MASTER_DB.migrationKey) === 'done') {
-      return { addedCount: 0, updatedCount: 0 };
-    }
-    
-    const legacyRows = collectLegacyMasterRows();
-    const result = legacyRows.length
-      ? await seedMasterItems(legacyRows, {
-          source: 'localStorage-migration',
-          overwriteKnownAisle: true,
-          forceAisle: true
-        })
-      : { addedCount: 0, updatedCount: 0 };
-    
-    localStorage.setItem(MASTER_DB.migrationKey, 'done');
-    return result;
-  }
-
-  async function refreshMasterItemsFromDb() {
-    const masterItems = await getAllMasterItems();
-
-    aisles = masterItems.map(item => ({
-      item: item.item,
-      aisle: normalizeAisle(item.aisle),
-      originalAisle: item.originalAisle || item.aisle || 'Unknown'
-    }));
-
-    renderBrowseItems();
-    return aisles;
-  }
-
-  // Re-infer aisles for items that were previously saved with "Unknown" (or no) aisle,
-  // both in the current shopping list and in the searchable master database.
-  async function reinferAislesForPastItems() {
-    let listFixed = 0;
-    for (const it of items) {
-      const current = normalizeAisle(it.aisle);
-      if (!current || current === 'Unknown') {
-        const inferred = inferAisle(it.name);
-        if (inferred) {
-          it.aisle = inferred;
-          listFixed++;
-        }
-      }
-    }
-    if (listFixed) saveState();
-
-    let dbFixed = 0;
-    try {
-      const masterItems = await getAllMasterItems();
-      for (const row of masterItems) {
-        const current = normalizeAisle(row.aisle);
-        if (!current || current === 'Unknown') {
-          const inferred = inferAisle(row.item);
-          if (inferred) {
-            await upsertMasterItem(row.item, inferred, {
-              source: 'pdf-inference-backfill',
-              overwriteKnownAisle: true,
-              originalAisle: inferred
-            });
-            dbFixed++;
-          }
-        }
-      }
-      if (dbFixed) await refreshMasterItemsFromDb();
-    } catch (e) {
-      console.error('Error re-inferring master DB aisles:', e);
-    }
-
-    if (listFixed || dbFixed) {
-      render();
-      setStatus(`Inferred aisles for ${listFixed} list item(s) and ${dbFixed} saved item(s)`);
-    }
-    return { listFixed, dbFixed };
-  }
-  
-  function isItemInCurrentList(itemName) {
-    const lowerName = (itemName || '').toString().trim().toLowerCase();
-    return items.some(item => item.name.toLowerCase() === lowerName);
-  }
-  
-  function setInputMode(mode) {
-    currentInputMode = mode === 'browse' ? 'browse' : 'search';
-    
-    if (els.searchAddView) {
-      els.searchAddView.style.display = currentInputMode === 'search' ? 'flex' : 'none';
-    }
-    if (els.browseView) {
-      els.browseView.style.display = currentInputMode === 'browse' ? 'block' : 'none';
-    }
-    if (els.searchModeBtn) {
-      els.searchModeBtn.classList.toggle('active', currentInputMode === 'search');
-      els.searchModeBtn.classList.toggle('secondary', currentInputMode !== 'search');
-    }
-    if (els.browseModeBtn) {
-      els.browseModeBtn.classList.toggle('active', currentInputMode === 'browse');
-      els.browseModeBtn.classList.toggle('secondary', currentInputMode !== 'browse');
-    }
-    
-    if (currentInputMode === 'search') {
-      els.input.focus();
-      return;
-    }
-    
-    document.getElementById('suggestions').style.display = 'none';
-    renderBrowseItems();
-    els.browseFilterInput.focus();
-  }
-  
-  function getSortedBrowseItems() {
-    return [...aisles].sort((a, b) => {
-      const aisleCompare = (a.aisle || 'Unknown').localeCompare(b.aisle || 'Unknown', undefined, { numeric: true });
-      if (aisleCompare !== 0) return aisleCompare;
-      return a.item.localeCompare(b.item);
-    });
-  }
-  
-  function getVisibleBrowseItems() {
-    const filterTerms = browseFilter.toLowerCase().split(/\s+/).filter(Boolean);
-    const allItems = getSortedBrowseItems();
-    
-    if (filterTerms.length === 0) {
-      return allItems;
-    }
-    
-    return allItems.filter(item => {
-      const haystack = `${item.item} ${item.aisle || ''}`.toLowerCase();
-      return filterTerms.every(term => haystack.includes(term));
-    });
-  }
-  
-  function renderBrowseItems() {
-    if (!els.browseItems || !els.browseSummary) return;
-    
-    const validKeys = new Set(aisles.map(item => item.item.toLowerCase()));
-    browseSelections = new Set(
-      [...browseSelections].filter(key => validKeys.has(key) && !isItemInCurrentList(key))
-    );
-    
-    const visibleItems = getVisibleBrowseItems();
-    
-    els.browseSummary.textContent = `${browseSelections.size} selected | ${visibleItems.length} visible`;
-    
-    if (visibleItems.length === 0) {
-      els.browseItems.innerHTML = '<div class="browse-empty">No items match this filter.</div>';
-      return;
-    }
-    
-    els.browseItems.innerHTML = visibleItems.map(item => {
-      const itemKey = item.item.toLowerCase();
-      const inList = isItemInCurrentList(item.item);
-      if (inList) {
-        browseSelections.delete(itemKey);
-      }
-      const checked = browseSelections.has(itemKey) ? 'checked' : '';
-      const disabled = inList ? 'disabled' : '';
-      const rowClass = inList ? 'browse-item disabled' : 'browse-item';
-      const suffix = inList
-        ? '<span class="muted">Already in list</span>'
-        : '';
-      
-      return `
-        <label class="${rowClass}">
-          <input type="checkbox" class="browse-checkbox" data-item-key="${escapeHtml(itemKey)}" ${checked} ${disabled} />
-          <span class="browse-item-name">${escapeHtml(item.item)}</span>
-          <span class="item-aisle">${escapeHtml(item.aisle || 'Unknown')}</span>
-          ${suffix}
-        </label>
-      `;
-    }).join('');
-    
-    document.querySelectorAll('.browse-checkbox').forEach(checkbox => {
-      checkbox.addEventListener('change', (event) => {
-        const itemKey = event.target.getAttribute('data-item-key');
-        if (!itemKey) return;
-        
-        if (event.target.checked) {
-          browseSelections.add(itemKey);
-        } else {
-          browseSelections.delete(itemKey);
-        }
-        
-        els.browseSummary.textContent = `${browseSelections.size} selected | ${visibleItems.length} visible`;
-      });
-    });
-  }
-  
-  function selectVisibleBrowseItems() {
-    const visibleItems = getVisibleBrowseItems();
-    let addedSelections = 0;
-    
-    visibleItems.forEach(item => {
-      if (!isItemInCurrentList(item.item)) {
-        const key = item.item.toLowerCase();
-        if (!browseSelections.has(key)) {
-          browseSelections.add(key);
-          addedSelections++;
-        }
-      }
-    });
-    
-    renderBrowseItems();
-    setStatus(
-      addedSelections > 0
-        ? `${addedSelections} visible item${addedSelections !== 1 ? 's' : ''} selected`
-        : 'All visible items are already selected or already in your list'
-    );
-  }
-  
-  function clearBrowseSelection() {
-    browseSelections.clear();
-    renderBrowseItems();
-    setStatus('Browse selection cleared');
-  }
-  
-  // Set up all event listeners
-  function setupEventListeners() {
-    // Add item
-    els.addBtn.addEventListener('click', addItem);
-    els.searchModeBtn.addEventListener('click', () => setInputMode('search'));
-    els.browseModeBtn.addEventListener('click', () => setInputMode('browse'));
-    els.browseFilterInput.addEventListener('input', (e) => {
-      browseFilter = e.target.value || '';
-      renderBrowseItems();
-    });
-    els.selectVisibleBtn.addEventListener('click', selectVisibleBrowseItems);
-    els.clearBrowseSelectionBtn.addEventListener('click', clearBrowseSelection);
-    els.addSelectedBtn.addEventListener('click', addSelectedBrowseItems);
-    
-    // Handle input for search and show suggestions
-    els.input.addEventListener('input', (e) => {
-      showSuggestions(e.target.value);
-    });
-    
-    // Add item on Enter key
-    els.input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        addItem();
-      }
-    });
-    
-    // Hide suggestions when clicking outside
-    document.addEventListener('click', (e) => {
-      if (e.target !== els.input && e.target !== document.getElementById('suggestions')) {
-        document.getElementById('suggestions').style.display = 'none';
-      }
-    });
-    
-    // Location switcher
-    els.locationSelect.addEventListener('change', async (e) => {
-      await switchLocation(e.target.value);
-    });
-
-    // Reverse order toggle
-    els.reverseOrderBtn.addEventListener('click', () => {
-      reverseAisles = !reverseAisles;
-      updateReverseOrderButton();
-      render();
-      saveState();
-    });
-    
-    // Print button
-    els.printBtn.addEventListener('click', () => {
-      // Update print date
-      const now = new Date();
-      els.printDate.textContent = `Generated on ${now.toLocaleDateString()} at ${now.toLocaleTimeString()}`;
-      
-      // Small delay to ensure DOM is updated
-      setTimeout(() => {
-        window.print();
-      }, 100);
-    });
-    
-    // Save list button
-    els.saveListBtn.addEventListener('click', saveCurrentList);
-
-    // Load list button
-    els.loadListBtn.addEventListener('click', toggleSavedListsPanel);
-
-    // Clear button
-    els.clearBtn.addEventListener('click', () => {
-      if (confirm('Are you sure you want to clear the entire shopping list?')) {
-        items = [];
-        saveState();
-        render();
-        setStatus('Shopping list cleared');
-      }
-    });
-  }
-  
-  // Set status message
-  function setStatus(msg, isError = false) {
-    if (!els.status) return;
-    els.status.textContent = msg;
-    els.status.style.color = isError ? '#dc3545' : '#495057';
-    console.log(`Status: ${msg}`);
-  }
-  
-  function updateReverseOrderButton() {
-    if (!els.reverseOrderBtn) return;
-    els.reverseOrderBtn.setAttribute('aria-pressed', reverseAisles ? 'true' : 'false');
-    if (els.reverseOrderIcon) els.reverseOrderIcon.textContent = reverseAisles ? '↑' : '↓';
-    if (els.reverseOrderLabel) els.reverseOrderLabel.textContent = reverseAisles ? 'Aisles: high → low' : 'Aisles: low → high';
-  }
-
-  // Normalize aisle names for consistency
-  function normalizeAisle(v) {
-    if (!v) return 'Unknown';
-    
-    // Convert to string and clean up
-    v = v.toString().trim();
-    
-    // Standardize aisle names
-    v = v.replace(/Dept(?:artment)?(\/|$)/gi, '').trim();
-    v = v.replace(/\s*\/\s*/g, '/');
-    v = v.replace(/\s+/g, ' ');
-    
-    // Specific normalizations for common departments
-    if (/^\s*produce|fruit|vegetable/i.test(v)) return 'Produce';
-    if (/^\s*bakery|bread|cake|donut|pastry/i.test(v)) return 'Bakery';
-    if (/^\s*(?:deli|fish|seafood)/i.test(v)) return 'Deli/Fish';
-    if (/^\s*meat/i.test(v)) return 'Meat';
-    if (/^\s*(?:frozen|ice\s*cream|ice\s*cream)/i.test(v)) return 'Frozen';
-    if (/^\s*dairy|cheese|milk|yogurt|butter/i.test(v)) return 'Dairy';
-    if (/^\s*breakfast|cereal|oatmeal/i.test(v)) return 'Breakfast';
-    if (/^\s*beverage|drink|soda|water|juice/i.test(v)) return 'Beverages';
-    if (/^\s*snack|candy|chips|cookie|cracker/i.test(v)) return 'Snacks';
-    
-    // Clean up aisle numbers (e.g., "Aisle 5" -> "5")
-    const aisleNumMatch = v.match(/^\s*(?:aisle\s*)?(\d+[a-z]?)(?:\s*[-&]\s*(\d+[a-z]?))?\s*$/i);
-    if (aisleNumMatch) {
-      return aisleNumMatch[2] 
-        ? `${aisleNumMatch[1]}-${aisleNumMatch[2]}`
-        : aisleNumMatch[1];
-    }
-    
-    return v || 'Unknown';
-  }
-  
-  // Process and apply aisle data
-  function applyData(rows) {
-    if (!Array.isArray(rows)) {
-      setStatus('Invalid data format: expected an array of items', true);
-      return false;
-    }
-    
-    // Process the data
-    aisles = rows
-      .map(row => {
-        // Handle different possible property names
-        const itemName = (row.item || row.name || '').toString().trim();
-        const aisle = normalizeAisle(row.aisle || row.section || row.location || '');
-        
-        return {
-          item: itemName,
-          aisle: aisle,
-          originalAisle: row.aisle || '' // Keep original for reference
-        };
-      })
-      .filter(x => x.item); // Remove empty items
-    
-    setStatus(`Loaded ${aisles.length} items`);
-    return true;
-  }
-  
-  // Show suggestions based on search input
-  function showSuggestions(searchTerm) {
-    const suggestionsEl = document.getElementById('suggestions');
-    suggestionsEl.innerHTML = '';
-    
-    if (!searchTerm) {
-      suggestionsEl.style.display = 'none';
-      return;
-    }
-    
-    const searchLower = searchTerm.toLowerCase();
-    const searchTerms = searchLower.split(' ').filter(Boolean);
-    const uniqueItems = {};
-    let matchCount = 0;
-    
-    // Find matching items
-    const matches = [];
-    for (const item of aisles) {
-      const lowerItem = item.item.toLowerCase();
-      // Remove special characters for better matching
-      const cleanItem = lowerItem.replace(/[:\-,]/g, ' ').replace(/\s+/g, ' ');
-      
-      // Check if all search terms are in the item (in cleaned version or original)
-      const matchesAllTerms = searchTerms.every(term => 
-        lowerItem.includes(term) || cleanItem.includes(term)
-      );
-      
-      if (matchesAllTerms && !uniqueItems[lowerItem]) {
-        matches.push(item);
-        uniqueItems[lowerItem] = true;
-        matchCount++;
-        
-        if (matchCount >= 10) break; // Limit to 10 suggestions
-      }
-    }
-    
-    // Display suggestions
-    if (matches.length > 0) {
-      matches.forEach(item => {
-        const div = document.createElement('div');
-        div.textContent = item.item;
-        div.style.padding = '8px 12px';
-        div.style.cursor = 'pointer';
-        div.onmouseover = () => div.style.backgroundColor = '#f5f5f5';
-        div.onmouseout = () => div.style.backgroundColor = 'transparent';
-        div.onclick = () => {
-          els.input.value = item.item;
-          suggestionsEl.style.display = 'none';
-          els.input.focus();
-        };
-        suggestionsEl.appendChild(div);
-      });
-      suggestionsEl.style.display = 'block';
-      setStatus(`Found ${matches.length} matching items`);
-    } else {
-      suggestionsEl.style.display = 'none';
-      setStatus('No matching items found', true);
-    }
-  }
-  
-  // Render the shopping list
-  function render() {
-    if (!els.list) return;
-    
-    // Sort items by aisle
-    const sortedItems = [...items].sort((a, b) => {
-      const aisleA = a.aisle || 'Unknown';
-      const aisleB = b.aisle || 'Unknown';
-      
-      // Check if both are numbers or numeric ranges
-      const aIsNumeric = /^\d+(-\d+)?$/.test(aisleA);
-      const bIsNumeric = /^\d+(-\d+)?$/.test(aisleB);
-      
-      // Both numeric - sort numerically
-      if (aIsNumeric && bIsNumeric) {
-        const aNum = parseInt(aisleA.split('-')[0]);
-        const bNum = parseInt(aisleB.split('-')[0]);
-        const aisleCompare = aNum - bNum;
-        if (aisleCompare !== 0) return reverseAisles ? -aisleCompare : aisleCompare;
-        // Same aisle, sort by name
-        return a.name.localeCompare(b.name);
-      }
-      
-      // One is numeric, one is not - numeric comes first
-      if (aIsNumeric) return reverseAisles ? 1 : -1;
-      if (bIsNumeric) return reverseAisles ? -1 : 1;
-      
-      // Both non-numeric - sort alphabetically
-      const aisleCompare = aisleA.localeCompare(aisleB);
-      if (aisleCompare !== 0) return reverseAisles ? -aisleCompare : aisleCompare;
-      // Same aisle, sort by name
-      return a.name.localeCompare(b.name);
-    });
-    
-    // Group items by aisle and render as aisle cards
-    let html = '';
-    if (sortedItems.length > 0) {
-      const groups = [];
-      let currentKey = null;
-      for (const item of sortedItems) {
-        const key = item.aisle || 'Unknown';
-        if (key !== currentKey) {
-          groups.push({ aisle: key, items: [] });
-          currentKey = key;
-        }
-        groups[groups.length - 1].items.push(item);
-      }
-
-      html = groups.map(g => {
-        const label = g.aisle === 'Unknown' ? 'Unknown aisle' : `Aisle ${g.aisle}`;
-        const itemsHtml = g.items.map(item => `
-          <div class="item fade-in" data-id="${item.id}">
-            <span class="item-name editable-name" data-id="${item.id}" title="Click to rename">${escapeHtml(item.name)}</span>
-            <span class="item-aisle editable-aisle" data-id="${item.id}" title="Click to edit aisle">${g.aisle === 'Unknown' ? '?' : escapeHtml(g.aisle)}</span>
-            <button class="remove-btn" data-id="${item.id}" title="Remove item">✕</button>
-          </div>`).join('');
-        return `
-          <div class="aisle-group">
-            <div class="aisle-header">
-              <h3>${escapeHtml(label)}</h3>
-              <span class="count">${g.items.length} item${g.items.length === 1 ? '' : 's'}</span>
-            </div>
-            <div class="aisle-items">${itemsHtml}</div>
-          </div>`;
-      }).join('');
-    }
-
-    els.list.innerHTML = html || `
-      <div class="empty-state">
-        <div class="icon">🛒</div>
-        <div>Your shopping list is empty.</div>
-        <div class="muted" style="margin-top:4px;">Type an item above to get started.</div>
-      </div>`;
-    
-    // Add click handlers to remove buttons
-    document.querySelectorAll('.remove-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation(); // Prevent event bubbling
-        const id = parseInt(btn.getAttribute('data-id'));
-        const item = items.find(i => i.id === id);
-        if (item && confirm(`Remove "${item.name}" from your list?`)) {
-          removeItem(id);
-        }
-      });
-    });
-    
-    // Add click handlers to editable aisle numbers
-    document.querySelectorAll('.editable-aisle').forEach(aisleEl => {
-      aisleEl.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const id = parseInt(aisleEl.getAttribute('data-id'));
-        const item = items.find(i => i.id === id);
-        if (!item) return;
-        
-        const currentAisle = item.aisle || 'Unknown';
-        const newAisle = prompt(`Edit aisle for "${item.name}":\n\n(Enter aisle number or name like "Produce", "Bakery", etc.)`, currentAisle === 'Unknown' ? '' : currentAisle);
-        
-        if (newAisle !== null && newAisle.trim() !== '') {
-          updateItemAisle(id, newAisle.trim());
-        }
-      });
-    });
-    
-    document.querySelectorAll('.editable-name').forEach(nameEl => {
-      nameEl.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const id = parseInt(nameEl.getAttribute('data-id'));
-        startInlineRename(id);
-      });
-    });
-    
-    renderBrowseItems();
-  }
-  
-  async function addItemByName(rawName, options = {}) {
-    const name = (rawName || '').trim();
-    if (!name) {
-      if (options.focusInput !== false) {
-        els.input.focus();
-      }
-      return { added: false, reason: 'empty' };
-    }
-    
-    const existingItem = items.find(item => item.name.toLowerCase() === name.toLowerCase());
-    if (existingItem) {
-      if (options.reportDuplicate !== false) {
-        setStatus(`"${name}" is already in your list`, true);
-      }
-      return { added: false, reason: 'duplicate' };
-    }
-    
-    const foundItem = aisles.find(item => item.item.toLowerCase() === name.toLowerCase());
-    let aisle = foundItem ? foundItem.aisle : null;
-
-    // Fuzzy / keyword inference against the Shoppers' Guide
-    if (!aisle) {
-      const inferred = inferAisle(name);
-      if (inferred) aisle = inferred;
-    }
-
-    if (!aisle) {
-      aisle = 'Unknown';
-    }
-    
-    const newItem = {
-      id: Date.now() + Math.floor(Math.random() * 1000),
-      name,
-      aisle,
-      added: new Date().toISOString()
-    };
-    
-    items.push(newItem);
-    
-    if (options.clearInput) {
-      els.input.value = '';
-    }
-    if (options.hideSuggestions) {
-      document.getElementById('suggestions').style.display = 'none';
-    }
-    if (options.focusInput) {
-      els.input.focus();
-    }
-    
-    saveState();
-    render();
-    
-    try {
-      await upsertMasterItem(name, aisle, {
-        source: options.source || 'shopping-list-entry',
-        overwriteKnownAisle: aisle !== 'Unknown',
-        originalAisle: aisle
-      });
-      await refreshMasterItemsFromDb();
-    } catch (error) {
-      console.error('Error saving item to search database:', error);
-      setStatus(`Added "${name}" to your list, but could not save it for search`, true);
-      return { added: true, item: newItem, warning: 'db-save-failed' };
-    }
-    
-    if (options.scrollToItem !== false) {
-      setTimeout(() => {
-        const newItemEl = document.querySelector(`[data-id="${newItem.id}"]`);
-        if (newItemEl) {
-          newItemEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      }, 100);
-    }
-    
-    if (options.reportStatus !== false) {
-      setStatus(`Added: ${name} (Aisle ${aisle})`);
-    }
-    
-    return { added: true, item: newItem };
-  }
-  
-  // Add a new item to the list
-  async function addItem() {
-    await addItemByName(els.input.value, {
-      clearInput: true,
-      hideSuggestions: true,
-      focusInput: true,
-      allowPrompt: true,
-      reportStatus: true,
-      scrollToItem: true,
-      source: 'shopping-list-entry'
-    });
-  }
-  
-  async function addSelectedBrowseItems() {
-    const selectedItems = getSortedBrowseItems().filter(item =>
-      browseSelections.has(item.item.toLowerCase()) && !isItemInCurrentList(item.item)
-    );
-    
-    if (selectedItems.length === 0) {
-      setStatus('Select at least one item from Browse / Select first', true);
-      return;
-    }
-    
-    let addedCount = 0;
-    
-    for (const item of selectedItems) {
-      const result = await addItemByName(item.item, {
-        allowPrompt: false,
-        focusInput: false,
-        reportDuplicate: false,
-        reportStatus: false,
-        scrollToItem: false,
-        source: 'browse-select'
-      });
-      
-      if (result.added) {
-        addedCount++;
-        browseSelections.delete(item.item.toLowerCase());
-      }
-    }
-    
-    renderBrowseItems();
-    setStatus(
-      addedCount > 0
-        ? `${addedCount} selected item${addedCount !== 1 ? 's' : ''} added to your list`
-        : 'Selected items were already in your list'
-    );
-  }
-  
-  // Remove an item by ID
-  function removeItem(id) {
-    const index = items.findIndex(item => item.id === id);
-    if (index !== -1) {
-      const removed = items.splice(index, 1)[0];
-      saveState();
-      render();
-      setStatus(`Removed: ${removed.name}`);
-    }
-  }
-  
-  function startInlineRename(id) {
-    if (editingItemNameId === id) return;
-    if (editingItemNameId !== null) return;
-    
-    const item = items.find(i => i.id === id);
-    const nameEl = document.querySelector(`.editable-name[data-id="${id}"]`);
-    if (!item || !nameEl) return;
-    
-    editingItemNameId = id;
-    nameEl.classList.add('is-editing');
-    nameEl.textContent = '';
-    
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.value = item.name;
-    input.className = 'editing-name-input';
-    input.setAttribute('aria-label', `Rename ${item.name}`);
-    nameEl.appendChild(input);
-    
-    let finished = false;
-    const finish = async (shouldSave) => {
-      if (finished) return;
-      finished = true;
-      
-      const nextValue = input.value.trim();
-      editingItemNameId = null;
-      
-      if (!shouldSave || !nextValue || nextValue === item.name) {
-        render();
-        return;
-      }
-      
-      await updateItemName(id, nextValue);
-    };
-    
-    input.addEventListener('keydown', async (event) => {
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        await finish(true);
-      } else if (event.key === 'Escape') {
-        event.preventDefault();
-        await finish(false);
-      }
-    });
-    
-    input.addEventListener('blur', async () => {
-      await finish(true);
-    });
-    
-    input.focus();
-    input.select();
-  }
-  
-  async function updateItemName(id, newName) {
-    const item = items.find(i => i.id === id);
-    if (!item) return false;
-    
-    const trimmedName = (newName || '').trim();
-    if (!trimmedName) {
-      setStatus('Item name cannot be empty', true);
-      render();
-      return false;
-    }
-    
-    const duplicate = items.find(i =>
-      i.id !== id && i.name.toLowerCase() === trimmedName.toLowerCase()
-    );
-    
-    if (duplicate) {
-      setStatus(`"${trimmedName}" is already in your list`, true);
-      render();
-      return false;
-    }
-    
-    const oldName = item.name;
-    item.name = trimmedName;
-    
-    saveState();
-    render();
-    
-    try {
-      await upsertMasterItem(trimmedName, item.aisle || 'Unknown', {
-        source: 'rename-item',
-        overwriteKnownAisle: (item.aisle || 'Unknown') !== 'Unknown',
-        originalAisle: item.aisle || 'Unknown'
-      });
-      await refreshMasterItemsFromDb();
-    } catch (error) {
-      console.error('Error saving renamed item to search database:', error);
-      setStatus(`Renamed "${oldName}" to "${trimmedName}", but could not save it for search`, true);
-      return false;
-    }
-    
-    setStatus(`Renamed "${oldName}" to "${trimmedName}"`);
-    return true;
-  }
-  
-  // Update an item's aisle
-  async function updateItemAisle(id, newAisle) {
-    const item = items.find(i => i.id === id);
-    if (!item) return;
-    
-    const normalizedAisle = normalizeAisle(newAisle);
-    item.aisle = normalizedAisle;
-    
-    // Update the aisles data array
-    const aisleDataItem = aisles.find(a => a.item.toLowerCase() === item.name.toLowerCase());
-    if (aisleDataItem) {
-      aisleDataItem.aisle = normalizedAisle;
-    } else {
-      // If item doesn't exist in aisles data, add it
-      aisles.push({
-        item: item.name,
-        aisle: normalizedAisle,
-        originalAisle: normalizedAisle
-      });
-    }
-    
-    try {
-      await upsertMasterItem(item.name, normalizedAisle, {
-        source: 'aisle-edit',
-        overwriteKnownAisle: true,
-        forceAisle: true,
-        originalAisle: normalizedAisle
-      });
-      await refreshMasterItemsFromDb();
-    } catch (error) {
-      console.error('Error saving aisle update to search database:', error);
-      setStatus(`Updated "${item.name}" in your list, but could not save the aisle change`, true);
-      saveState();
-      render();
-      return;
-    }
-    
-    saveState();
-    render();
-    setStatus(`Updated: ${item.name} moved to Aisle ${normalizedAisle}`);
-  }
-  
-  // Add all items from current shopping list to master list
-  async function addCurrentListToMaster() {
-    if (items.length === 0) {
-      setStatus('Cannot add items: shopping list is empty', true);
-      return;
-    }
-    
-    let addedCount = 0;
-    let updatedCount = 0;
-    
-    for (const shoppingItem of items) {
-      const itemName = shoppingItem.name;
-      const itemAisle = shoppingItem.aisle || 'Unknown';
-
-      try {
-        const result = await upsertMasterItem(itemName, itemAisle, {
-          source: 'manual-sync',
-          overwriteKnownAisle: itemAisle !== 'Unknown',
-          originalAisle: itemAisle
-        });
-        
-        if (result.added) addedCount++;
-        if (result.updated) updatedCount++;
-      } catch (error) {
-        console.error('Error syncing item to search database:', error);
-      }
-    }
-
-    try {
-      await refreshMasterItemsFromDb();
-    } catch (error) {
-      console.error('Error refreshing search database cache:', error);
-    }
-    
-    // Show summary message
-    const messages = [];
-    if (addedCount > 0) {
-      messages.push(`${addedCount} new item${addedCount !== 1 ? 's' : ''} added`);
-    }
-    if (updatedCount > 0) {
-      messages.push(`${updatedCount} item${updatedCount !== 1 ? 's' : ''} updated`);
-    }
-    
-    if (messages.length > 0) {
-      setStatus(`Search database updated: ${messages.join(', ')}.`);
-    } else {
-      setStatus('Search database already had the same items and aisles');
-    }
-  }
-  
-  // Export aisle data as JSON file
-  function exportAisleData() {
-    const dataToExport = aisles.map(item => ({
-      item: item.item,
-      aisle: item.aisle
-    }));
-    
-    const dataStr = JSON.stringify(dataToExport, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'mb_lynn_82_aisles_updated.json';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    
-    setStatus('Aisle data exported successfully');
-  }
-  
-  // Save current list with a name
-  function saveCurrentList() {
-    if (items.length === 0) {
-      setStatus('Cannot save an empty list', true);
-      return;
-    }
-    
-    const listName = prompt('Enter a name for this list:');
-    if (!listName || !listName.trim()) {
-      return;
-    }
-    
-    const trimmedName = listName.trim();
-    
-    // Get saved lists from localStorage
-    const savedLists = getSavedLists();
-    
-    // Check if name already exists
-    if (savedLists[trimmedName]) {
-      if (!confirm(`A list named "${trimmedName}" already exists. Overwrite it?`)) {
-        return;
-      }
-    }
-    
-    // Save the list
-    savedLists[trimmedName] = {
-      items: items.map(item => ({ ...item })),
-      reverseAisles: reverseAisles,
-      savedAt: new Date().toISOString()
-    };
-    
-    localStorage.setItem('mbSavedLists', JSON.stringify(savedLists));
-    
-    setStatus(`List "${trimmedName}" saved successfully`);
-    renderSavedLists();
-  }
-  
-  // Get all saved lists from localStorage
-  function getSavedLists() {
-    try {
-      const saved = localStorage.getItem('mbSavedLists');
-      return saved ? JSON.parse(saved) : {};
-    } catch (e) {
-      console.error('Error loading saved lists:', e);
-      return {};
-    }
-  }
-  
-  // Load a saved list
-  function loadSavedList(listName) {
-    const savedLists = getSavedLists();
-    const savedList = savedLists[listName];
-    
-    if (!savedList) {
-      setStatus(`List "${listName}" not found`, true);
-      return;
-    }
-    
-    if (items.length > 0) {
-      if (!confirm('Loading a saved list will replace your current list. Continue?')) {
-        return;
-      }
-    }
-    
-    // Load the items
-    items = savedList.items.map(item => ({ ...item }));
-    
-    // Load settings
-    if (savedList.reverseAisles !== undefined) {
-      reverseAisles = savedList.reverseAisles;
-      updateReverseOrderButton();
-    }
-    
-    
-    // Save current state and render
-    saveState();
-    render();
-    setStatus(`Loaded list "${listName}"`);
-    
-    // Hide the saved lists panel
-    els.savedListsPanel.style.display = 'none';
-  }
-  
-  // Delete a saved list
-  function deleteSavedList(listName) {
-    if (!confirm(`Are you sure you want to delete the list "${listName}"?`)) {
-      return;
-    }
-    
-    const savedLists = getSavedLists();
-    delete savedLists[listName];
-    localStorage.setItem('mbSavedLists', JSON.stringify(savedLists));
-    
-    setStatus(`List "${listName}" deleted`);
-    renderSavedLists();
-  }
-  
-  // Toggle saved lists panel
-  function toggleSavedListsPanel() {
-    const isVisible = els.savedListsPanel.style.display !== 'none';
-    els.savedListsPanel.style.display = isVisible ? 'none' : 'block';
-    
-    if (!isVisible) {
-      renderSavedLists();
-    }
-  }
-  
-  // Render the saved lists panel
-  function renderSavedLists() {
-    const savedLists = getSavedLists();
-    const listNames = Object.keys(savedLists).sort();
-    
-    if (listNames.length === 0) {
-      els.savedListsContainer.innerHTML = '<p class="muted" style="margin: 0;">No saved lists yet. Save your current list to get started.</p>';
-      return;
-    }
-    
-    let html = '<div style="display: flex; flex-direction: column; gap: 8px;">';
-    
-    listNames.forEach(listName => {
-      const savedList = savedLists[listName];
-      const itemCount = savedList.items ? savedList.items.length : 0;
-      const savedDate = savedList.savedAt ? new Date(savedList.savedAt).toLocaleString() : 'Unknown date';
-      
-      html += `
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: white; border-radius: 4px; border: 1px solid #ddd;">
-          <div style="flex: 1;">
-            <div style="font-weight: 500; margin-bottom: 4px;">${escapeHtml(listName)}</div>
-            <div class="muted" style="font-size: 12px;">${itemCount} item${itemCount !== 1 ? 's' : ''} • Saved ${savedDate}</div>
-          </div>
-          <div style="display: flex; gap: 8px;">
-            <button class="secondary load-list-btn" data-list-name="${escapeHtml(listName)}" style="padding: 6px 12px; font-size: 13px; min-height: auto;">Load</button>
-            <button class="danger delete-list-btn" data-list-name="${escapeHtml(listName)}" style="padding: 6px 12px; font-size: 13px; min-height: auto;">Delete</button>
-          </div>
-        </div>
-      `;
-    });
-    
-    html += '</div>';
-    els.savedListsContainer.innerHTML = html;
-    
-    // Add event listeners to the buttons
-    document.querySelectorAll('.load-list-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const listName = e.target.getAttribute('data-list-name');
-        if (listName) {
-          loadSavedList(listName);
-        }
-      });
-    });
-    
-    document.querySelectorAll('.delete-list-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const listName = e.target.getAttribute('data-list-name');
-        if (listName) {
-          deleteSavedList(listName);
-        }
-      });
-    });
-  }
-  
-  // Handle file upload
-  function handleFileUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    
-    const reader = new FileReader();
-    
-    reader.onload = function(e) {
-      try {
-        let data;
-        
-        // Try to parse as JSON
-        if (file.name.endsWith('.json')) {
-          data = JSON.parse(e.target.result);
-        } 
-        // Try to parse as CSV
-        else if (file.name.endsWith('.csv')) {
-          data = parseCSV(e.target.result);
-        } else {
-          throw new Error('Unsupported file format. Please use .json or .csv');
-        }
-        
-        if (applyData(data)) {
-          setStatus(`Successfully loaded ${data.length} items from ${file.name}`);
-          saveState();
-        }
-      } catch (error) {
-        setStatus(`Error loading file: ${error.message}`, true);
-        console.error('File load error:', error);
-      }
-    };
-    
-    reader.onerror = function() {
-      setStatus('Error reading file', true);
-    };
-    
-    if (file.name.endsWith('.csv')) {
-      reader.readAsText(file);
-    } else {
-      reader.readAsText(file);
-    }
-    
-    // Reset the file input
-    event.target.value = '';
-  }
-  
-  // Parse CSV data
-  function parseCSV(csvText) {
-    const lines = csvText.split('\n').filter(line => line.trim() !== '');
-    if (lines.length < 1) return [];
-    
-    // Try to detect the delimiter
-    const firstLine = lines[0];
-    let delimiter = ',';
-    if (firstLine.includes('\t')) delimiter = '\t';
-    else if (firstLine.includes(';')) delimiter = ';';
-    
-    // Parse headers (first row)
-    const headers = lines[0].split(delimiter).map(h => h.trim().toLowerCase());
-    
-    // Check if we have required columns
-    const hasItem = headers.some(h => h.includes('item') || h.includes('name'));
-    const hasAisle = headers.some(h => h.includes('aisle') || h.includes('section'));
-    
-    if (!hasItem || !hasAisle) {
-      throw new Error('CSV must contain "item" and "aisle" columns');
-    }
-    
-    // Get column indices
-    const itemIndex = headers.findIndex(h => h.includes('item') || h.includes('name'));
-    const aisleIndex = headers.findIndex(h => h.includes('aisle') || h.includes('section'));
-    
-    // Parse data rows
-    return lines.slice(1).map(line => {
-      const values = line.split(delimiter).map(v => v.trim().replace(/^"|"$/g, ''));
-      return {
-        item: values[itemIndex] || '',
-        aisle: values[aisleIndex] || 'Unknown'
-      };
-    }).filter(row => row.item); // Remove empty rows
-  }
-  
-  // Load data from URL
-  async function loadFromUrl() {
-    const url = els.urlInput.value.trim();
-    if (!url) {
-      setStatus('Please enter a URL', true);
-      return;
-    }
-    
-    try {
-      setStatus('Loading data from URL...');
-      
-      const response = await fetch(url, { cache: 'no-cache' });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      let data;
-      
-      if (url.endsWith('.json')) {
-        data = await response.json();
-      } else if (url.endsWith('.csv')) {
-        const csvText = await response.text();
-        data = parseCSV(csvText);
-      } else {
-        // Try to auto-detect format
-        const text = await response.text();
-        try {
-          // Try to parse as JSON
-          data = JSON.parse(text);
-        } catch (e) {
-          // Try to parse as CSV
-          data = parseCSV(text);
-        }
-      }
-      
-      if (applyData(data)) {
-        setStatus(`Successfully loaded ${data.length} items from URL`);
-        saveState();
-        els.urlInput.value = ''; // Clear the URL input
-      }
-    } catch (error) {
-      setStatus(`Error loading from URL: ${error.message}`, true);
-      console.error('URL load error:', error);
-    }
-  }
-  
-  async function getDefaultAisleRows() {
-    try {
-      const response = await fetch(getCurrentLocation().file, { cache: 'no-cache' });
-      if (response.ok) {
-        const data = await response.json();
-        return { rows: data, source: 'JSON file' };
-      }
-    } catch (fetchError) {
-      console.log('Could not load JSON file, trying fallbacks:', fetchError);
-    }
-    
-    const embedded = getCurrentLocation().embedded;
-    if (embedded && embedded.length > 0) {
-      return { rows: embedded, source: 'embedded data' };
-    }
-    
-    try {
-      const savedAisles = localStorage.getItem('mbAisles');
-      if (savedAisles) {
-        const data = JSON.parse(savedAisles);
-        if (data && Array.isArray(data.data)) {
-          return { rows: data.data, source: 'cached aisle data' };
-        }
-      }
-    } catch (error) {
-      console.error('Error reading cached aisle data:', error);
-    }
-    
-    return { rows: [], source: '' };
-  }
-  
-  // Load aisle data from the default location
-  async function loadAisleData(options = {}) {
-    try {
-      setStatus('Loading aisle data...');
-
-      const defaultData = await getDefaultAisleRows();
-      await openMasterDatabase();
-
-      if (defaultData.rows.length > 0) {
-        await seedMasterItems(defaultData.rows, {
-          source: `${getCurrentLocation().id}-${defaultData.source || 'default-data'}`,
-          overwriteKnownAisle: !!options.forceOverwrite,
-          forceAisle: !!options.forceOverwrite
-        });
-      }
-
-      if (!options.forceOverwrite) {
-        await migrateLegacyMasterData();
-      }
-      await refreshMasterItemsFromDb();
-      await applyLocationToCurrentList();
-      await reinferAislesForPastItems();
-
-      if (aisles.length > 0) {
-        setStatus(`Loaded ${aisles.length} items for ${getCurrentLocation().name}`);
-      } else {
-        setStatus('No aisle data available', true);
-      }
-    } catch (error) {
-      console.error('Error loading aisle data:', error);
-      setStatus('Error loading aisle data. Some features may be limited.', true);
-    }
-  }
-
-  // When location changes, re-map aisles on current list items where we have an exact
-  // guide entry for that item in the new location.
-  async function applyLocationToCurrentList() {
-    let changed = 0;
-    for (const it of items) {
-      const match = aisles.find(a => a.item.toLowerCase() === it.name.toLowerCase());
-      if (match && match.aisle && match.aisle !== it.aisle) {
-        it.aisle = match.aisle;
-        changed++;
-      }
-    }
-    if (changed) saveState();
-  }
-
-  async function switchLocation(newId) {
-    if (!LOCATIONS[newId] || newId === currentLocationId) return;
-    currentLocationId = newId;
-    localStorage.setItem('mbLocationId', currentLocationId);
-    updateLocationHeader();
-    await loadAisleData({ forceOverwrite: true });
-    render();
-  }
-
-  function updateLocationHeader() {
-    const loc = getCurrentLocation();
-    if (els.locationSubtitle) els.locationSubtitle.textContent = loc.subtitle;
-    if (els.locationSelect) els.locationSelect.value = currentLocationId;
-  }
-  
-  // Save current state to localStorage
-  function saveState() {
-    try {
-      localStorage.setItem('mbShoppingList', JSON.stringify({
-        items: items,
-        reverseAisles: reverseAisles,
-        version: 2,
-        timestamp: new Date().toISOString()
-      }));
-    } catch (e) {
-      console.error('Error saving state:', e);
-    }
-  }
-  
-  // Load state from localStorage
-  function loadState() {
-    try {
-      const savedData = localStorage.getItem('mbShoppingList');
-      if (savedData) {
-        const data = JSON.parse(savedData);
-        
-        if (data && Array.isArray(data.items)) {
-          // Migrate from version 1 to version 2
-          if (data.version === 1) {
-            items = data.items.map(item => ({
-              ...item,
-              id: item.id || Date.now() + Math.random(),
-              added: item.added || new Date().toISOString()
-            }));
-          } else {
-            items = data.items;
-          }
-          
-          // Load settings
-          if (data.reverseAisles !== undefined) {
-            reverseAisles = data.reverseAisles;
-            updateReverseOrderButton();
-          }
-          
-          
-          render();
-          setStatus(`Loaded ${items.length} items from your last session`);
-        }
-      }
-    } catch (e) {
-      console.error('Error loading saved state:', e);
-      setStatus('Error loading saved data', true);
-    }
-  }
-  
-  // Helper function to escape HTML
-  function escapeHtml(unsafe) {
-    if (!unsafe) return '';
-    return unsafe
-      .toString()
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
-  }
-  
-  // Initialize the app when the DOM is loaded
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
-  </script>
+  <script src="stores.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
