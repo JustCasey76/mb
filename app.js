@@ -707,11 +707,16 @@
     if (!state.items.length) return;
     if (!name) { el.saveName.focus(); return toast('Give the list a name first'); }
     const saved = getSaved();
+    const previous = saved[name];
     saved[name] = { items: state.items.map(i => ({ name: i.name, qty: i.qty })), savedAt: new Date().toISOString() };
     putSaved(saved);
     el.saveName.value = '';
     renderSaved();
-    toast(`Saved “${name}”`);
+    if (previous) {
+      toast(`Updated “${name}”`, () => { const s = getSaved(); s[name] = previous; putSaved(s); renderSaved(); });
+    } else {
+      toast(`Saved “${name}”`);
+    }
   }
 
   // ────────────────────────────── Toast ──────────────────────────────
@@ -819,6 +824,11 @@
       renderGuide();
     });
 
+    $('#saveListBtn').addEventListener('click', () => {
+      renderSaved();
+      el.savedSheet.showModal();
+      if (state.items.length && matchMedia('(pointer: fine)').matches) el.saveName.focus();
+    });
     el.saveBtn.addEventListener('click', saveCurrent);
     el.saveName.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveCurrent(); } });
     el.savedList.addEventListener('click', e => {
