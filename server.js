@@ -79,7 +79,7 @@ function sanitize(lists) {
 // Light brute-force protection: at most 60 sync requests a minute per address.
 const hits = new Map();
 function limited(req) {
-  const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+  const ip = clientIp(req);
   const now = Date.now();
   const rec = hits.get(ip) || { n: 0, t: now };
   if (now - rec.t > 60000) { rec.n = 0; rec.t = now; }
@@ -96,6 +96,87 @@ function readBody(req) {
     req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
     req.on('error', reject);
   });
+}
+
+// ── Shared aisle memory ─────────────────────────────────────────────────────────────
+// When a shopper picks an item's aisle at a store (because the guide doesn't list it, or placed it
+// wrong), that pick is recorded here for that store so the next person gets it. One vote per shopper
+// per item (by hashed address); the aisle with the most votes wins, so a stray wrong pick can be
+// outvoted. File per store: { itemKey: { name, votes: { aisle: n }, voters: { hash: aisle }, at } }
+fs.mkdirSync(path.join(DATA_DIR, 'aisles'), { recursive: true });
+// Only real stores (the ids in stores.js) can have an aisle memory.
+const STORE_IDS = new Set([...fs.readFileSync(path.join(ROOT, 'stores.js'), 'utf8').matchAll(/^\s+([a-z0-9]+): \{ id: '/gm)].map(m => m[1]));
+const aisleCache = new Map();
+function aisleFile(store) { return path.join(DATA_DIR, 'aisles', store + '.json'); }
+function readAisles(store) {
+  if (aisleCache.has(store)) return aisleCache.get(store);
+  let data = {};
+  try { data = JSON.parse(fs.readFileSync(aisleFile(store), 'utf8')) || {}; } catch (e) { /* none yet */ }
+  aisleCache.set(store, data);
+  return data;
+}
+function writeAisles(store, data) {
+  const f = aisleFile(store), tmp = f + '.' + process.pid + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(data));
+  fs.renameSync(tmp, f);
+  aisleCache.set(store, data);
+}
+function winner(rec) {
+  let best = null, n = 0;
+  for (const [a, c] of Object.entries(rec.votes || {})) if (c > n) { best = a; n = c; }
+  return best ? { aisle: best, votes: n } : null;
+}
+// Public view: item → winning aisle (no voter info leaves the server).
+function publicAisles(store) {
+  const out = {};
+  for (const [k, rec] of Object.entries(readAisles(store))) {
+    const w = winner(rec);
+    if (w) out[k] = { name: rec.name, aisle: w.aisle, votes: w.votes };
+  }
+  return out;
+}
+const voteHits = new Map();
+function voteLimited(ip) {
+  const now = Date.now(), rec = voteHits.get(ip) || { n: 0, t: now };
+  if (now - rec.t > 3600000) { rec.n = 0; rec.t = now; }
+  rec.n++; voteHits.set(ip, rec);
+  if (voteHits.size > 5000) voteHits.clear();
+  return rec.n > 120; // plenty for real shopping, stops floods
+}
+// The visitor's address, used only to count one vote per shopper. A visitor can put anything in
+// X-Forwarded-For, but Railway's edge appends the real address as the LAST entry, so that's the one used.
+function clientIp(req) {
+  const fwd = String(req.headers['x-forwarded-for'] || '').split(',').map(x => x.trim()).filter(Boolean);
+  if (fwd.length) return fwd[fwd.length - 1];
+  return String(req.headers['x-real-ip'] || req.socket.remoteAddress || '').trim();
+}
+const voterId = (ip) => crypto.createHash('sha256').update('aisle-voter:' + ip).digest('hex').slice(0, 16);
+
+async function handleAisles(req, res, url) {
+  const store = String(url.searchParams.get('store') || '');
+  if (!STORE_IDS.has(store)) return json(res, 400, { error: 'Unknown store' });
+  if (req.method === 'GET') return json(res, 200, { store, aisles: publicAisles(store) });
+  if (req.method !== 'POST') return json(res, 405, { error: 'Method not allowed' });
+  const ip = clientIp(req);
+  if (voteLimited(ip)) return json(res, 429, { error: 'Too many aisle updates — try again later.' });
+  let body;
+  try { body = JSON.parse(await readBody(req) || '{}'); } catch (e) { return json(res, 400, { error: 'Could not read that request.' }); }
+  const key = String(body.key || '').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80);
+  const name = String(body.name || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 80);
+  const aisle = String(body.aisle || '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 40);
+  if (!key || !name) return json(res, 400, { error: 'Missing item' });
+  const data = { ...readAisles(store) };
+  if (!data[key] && Object.keys(data).length >= 5000) return json(res, 507, { error: 'Aisle memory is full for this store' });
+  const rec = data[key] ? { ...data[key], votes: { ...data[key].votes }, voters: { ...data[key].voters } } : { name, votes: {}, voters: {} };
+  const who = voterId(ip);
+  const prev = rec.voters[who];
+  if (prev) { rec.votes[prev] = (rec.votes[prev] || 1) - 1; if (rec.votes[prev] <= 0) delete rec.votes[prev]; delete rec.voters[who]; }
+  if (aisle) { rec.votes[aisle] = (rec.votes[aisle] || 0) + 1; rec.voters[who] = aisle; } // empty aisle = take back my vote
+  rec.at = new Date().toISOString();
+  if (Object.keys(rec.votes).length) data[key] = rec; else delete data[key];
+  writeAisles(store, data);
+  const w = data[key] ? winner(data[key]) : null;
+  return json(res, 200, { key, aisle: w ? w.aisle : null, votes: w ? w.votes : 0 });
 }
 
 const server = http.createServer(async (req, res) => {
@@ -118,6 +199,8 @@ const server = http.createServer(async (req, res) => {
     }
     return json(res, 405, { error: 'Method not allowed' });
   }
+
+  if (url.pathname === '/api/aisles') return handleAisles(req, res, url);
 
   if (url.pathname === '/healthz') return send(res, 200, 'ok', 'text/plain');
 

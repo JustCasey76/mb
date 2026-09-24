@@ -273,13 +273,89 @@
     });
   }
 
-  // Where an item goes in the current store: your correction first, then the guide.
+  // ────────────────────────────── Shared aisle memory ──────────────────────────────
+  // Items that aren't in a store's guide, placed by shoppers of that store (most votes wins).
+  // Kept on the server per store; cached here so it still works offline.
+  const shared = {};        // storeId → { key: { name, aisle, votes } }
+  const sharedIdx = {};     // storeId → [{ toks, rec }]
+  const sharedFetchedAt = {};
+  function setShared(storeId, map) {
+    shared[storeId] = map || {};
+    sharedIdx[storeId] = Object.entries(shared[storeId])
+      .map(([k, rec]) => ({ toks: k.split(' ').filter(Boolean), rec }))
+      .filter(x => x.toks.length);
+    try { localStorage.setItem('mb2.shared.' + storeId, JSON.stringify(shared[storeId])); } catch (e) { /* full */ }
+  }
+  function sharedFor(storeId) {
+    if (!shared[storeId]) {
+      let cached = {};
+      try { cached = JSON.parse(localStorage.getItem('mb2.shared.' + storeId) || '{}') || {}; } catch (e) { /* ignore */ }
+      setShared(storeId, cached);
+    }
+    return sharedIdx[storeId];
+  }
+  // Same item (any plural/case) or a longer name containing it: "widget thingy" also places
+  // "blue widget thingies". Longest match wins, then most votes.
+  function sharedExact(name, storeId) {
+    sharedFor(storeId);
+    return shared[storeId]?.[keyOf(name)] || null;
+  }
+  function matchShared(name, storeId) {
+    const toks = tokenize(name);
+    if (!toks.length) return null;
+    const exact = sharedExact(name, storeId);
+    if (exact) return exact;
+    let best = null;
+    for (const { toks: t, rec } of sharedFor(storeId)) {
+      if (t.length > toks.length || findPhrase(toks, t) < 0) continue;
+      if (!best || t.length > best.n || (t.length === best.n && rec.votes > best.rec.votes)) best = { n: t.length, rec };
+    }
+    return best && best.rec;
+  }
+  async function fetchShared(storeId = state.storeId, force = false) {
+    if (!force && Date.now() - (sharedFetchedAt[storeId] || 0) < 60000) return;
+    sharedFetchedAt[storeId] = Date.now();
+    try {
+      const r = await fetch('/api/aisles?store=' + encodeURIComponent(storeId), { cache: 'no-store' });
+      if (!r.ok) return;
+      const data = await r.json();
+      const before = JSON.stringify(shared[storeId] || {});
+      setShared(storeId, data.aisles || {});
+      if (storeId === state.storeId && JSON.stringify(shared[storeId]) !== before) { render(); renderPreview(); }
+    } catch (e) { /* offline: keep the cached copy */ }
+  }
+  // Tell the server where this shopper found an item at this store ('' takes the vote back).
+  function shareAisle(storeId, name, aisle) {
+    const key = keyOf(name);
+    if (!key) return;
+    const map = { ...(shared[storeId] || {}) };
+    if (aisle) map[key] = { name, aisle, votes: Math.max(1, map[key]?.votes || 0) };
+    setShared(storeId, map);
+    fetch('/api/aisles?store=' + encodeURIComponent(storeId), {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, name, aisle: aisle || '' })
+    }).then(r => r.ok && r.json()).then(res => {
+      if (!res) return;
+      const m = { ...(shared[storeId] || {}) };
+      if (res.aisle) m[key] = { name, aisle: res.aisle, votes: res.votes }; else delete m[key];
+      setShared(storeId, m);
+      if (storeId === state.storeId) render();
+    }).catch(() => { /* offline: it stays in your own picks; shared next time you pick */ });
+  }
+
+  // Where an item goes in the current store, in order: your own pick → what shoppers of this
+  // store set for this exact item (fixes the guide when it guessed wrong) → the store's guide →
+  // shoppers' pick for a similar item the guide doesn't list at all.
   function locate(name, storeId = state.storeId) {
     const k = keyOf(name);
     const mine = state.learned[storeId]?.[k];
     if (mine) return { aisle: mine, section: sectionOf(mine), via: 'you' };
+    const fixed = sharedExact(name, storeId);
+    if (fixed) return { aisle: fixed.aisle, section: sectionOf(fixed.aisle), via: 'shared', shared: fixed };
     const e = matchGuide(name, idxFor(storeId));
     if (e) return { aisle: e.aisle, section: sectionOf(e.aisle), via: 'guide', entry: e };
+    const sh = matchShared(name, storeId);
+    if (sh) return { aisle: sh.aisle, section: sectionOf(sh.aisle), via: 'shared', shared: sh };
     return { aisle: '', section: UNKNOWN, via: null };
   }
 
@@ -468,7 +544,7 @@
       shown++;
       const allDone = left === 0;
       const desc = g.sec.unknown
-        ? 'Not in the Shoppers’ Guide — tap “Set aisle” once and it’s remembered for this store.'
+        ? 'Not in the Shoppers’ Guide — tap “Set aisle” once and it’s saved for everyone shopping this store.'
         : esc(g.sec.num ? describe(g.sec) : (describe(g.sec) || g.sec.word));
       html += `
         <article class="section${g.sec.unknown ? ' unknown' : ''}${allDone ? ' done' : ''}${shownSections.has(g.sec.key) ? '' : ' fresh'}" data-sec="${esc(g.sec.key)}">
@@ -497,7 +573,10 @@
   function itemHtml(it) {
     const need = !it.loc.section || it.loc.section.unknown;
     const chip = need ? 'Set aisle' : aisleText(it.loc.aisle);
-    const title = need ? 'Pick the aisle for this item' : it.loc.via === 'you' ? 'You set this aisle — tap to change' : `From the guide: ${it.loc.entry.item} … ${it.loc.aisle}`;
+    const title = need ? 'Pick the aisle for this item'
+      : it.loc.via === 'you' ? 'You set this aisle — tap to change'
+      : it.loc.via === 'shared' ? `Placed by shoppers at this store (${it.loc.shared.votes} vote${it.loc.shared.votes === 1 ? '' : 's'}) — tap to change`
+      : `From the guide: ${it.loc.entry.item} … ${it.loc.aisle}`;
     return `
       <li class="item${it.checked ? ' checked' : ''}" data-id="${it.id}">
         <button class="check" type="button" role="checkbox" aria-checked="${it.checked}" aria-label="${esc(it.name)}" data-act="toggle"><span class="box">${ICON.check}</span></button>
@@ -534,7 +613,7 @@
       const ok = !loc.section.unknown;
       if (ok) matched++;
       const dup = inList.has(keyOf(p.name));
-      const src = loc.via === 'you' ? 'your pick' : ok ? loc.entry.item : 'we’ll ask';
+      const src = loc.via === 'you' ? 'your pick' : loc.via === 'shared' ? 'placed by shoppers' : ok ? loc.entry.item : 'we’ll ask';
       const pk = keyOf(p.name);
       keys.add(pk);
       const isNew = !previewKeys.has(pk);
@@ -652,6 +731,7 @@
     state.recentStores = [id, ...(state.recentStores || []).filter(x => x !== id)].slice(0, 4);
     save();
     renderStore(); render(); renderPreview();
+    fetchShared(id, true);
     if (el.guideSheet.open) renderGuide();
     toast(state.items.length ? `Re-sorted for ${STORES[id].name} #${STORES[id].number}` : `Now shopping ${STORES[id].name} #${STORES[id].number}`);
   }
@@ -691,7 +771,7 @@
     if (!it) return;
     pickingId = id;
     const loc = locate(it.name);
-    el.aisleSub.innerHTML = `<b>${esc(it.name)}</b> at ${esc(STORES[state.storeId].name)} #${esc(STORES[state.storeId].number)}. Your choice is remembered for next time.`;
+    el.aisleSub.innerHTML = `<b>${esc(it.name)}</b> at ${esc(STORES[state.storeId].name)} #${esc(STORES[state.storeId].number)}. Your pick is remembered, and shared so other shoppers at this store get the right aisle too.`;
     el.aisleFilter.value = '';
     renderAisleOptions(loc);
     el.aisleSheet.showModal();
@@ -720,9 +800,15 @@
     const k = keyOf(it.name);
     if (raw === null) delete learned[k]; else learned[k] = raw;
     save();
+    // Share it with other shoppers of this store: fills in items the guide doesn't list and fixes
+    // ones it placed wrong. Picking the same aisle the guide already says needs no vote.
+    const g = matchGuide(it.name, idxFor(state.storeId));
+    const agreesWithGuide = raw !== null && g && sectionOf(g.aisle).key === sectionOf(raw).key;
+    shareAisle(state.storeId, it.name, raw === null || agreesWithGuide ? '' : raw);
     el.aisleSheet.close();
     render();
-    toast(raw === null ? `${it.name} back to the guide's aisle` : `${it.name} → ${aisleText(raw)} (remembered)`);
+    toast(raw === null ? `${it.name} back to the store's usual aisle`
+      : `${it.name} → ${aisleText(raw)} (remembered${agreesWithGuide ? '' : ' & shared with shoppers at this store'})`);
   }
 
   // ────────────────────────────── Guide browser ──────────────────────────────
@@ -1040,7 +1126,7 @@
       if (e.target.closest('[data-sync-stop]')) stopSync();
     });
     // pick up changes made on your other devices when you come back to the app
-    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') syncNow(); });
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { syncNow(); fetchShared(); } });
     window.addEventListener('online', () => syncNow());
     el.saveBtn.addEventListener('click', saveCurrent);
     el.saveName.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveCurrent(); } });
@@ -1081,6 +1167,7 @@
     render();
     renderPreview();
     if (getSyncCode()) syncNow();
+    fetchShared(state.storeId, true);
   }
 
   // Exposed for quick testing from the console.
