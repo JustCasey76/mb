@@ -408,6 +408,8 @@
     aisleSheet: $('#aisleSheet'), aisleSub: $('#aisleSub'), aisleFilter: $('#aisleFilter'), aisleOptions: $('#aisleOptions'),
     guideSheet: $('#guideSheet'), guideSub: $('#guideSub'), guideFilter: $('#guideFilter'), guideList: $('#guideList'),
     savedSheet: $('#savedSheet'), saveName: $('#saveName'), saveBtn: $('#saveBtn'), savedList: $('#savedList'),
+    priceSheet: $('#priceSheet'), priceSub: $('#priceSub'), priceBody: $('#priceBody'),
+    couponSheet: $('#couponSheet'), couponBody: $('#couponBody'), couponBtn: $('#couponBtn'), couponCount: $('#couponCount'),
     toast: $('#toast'), toastMsg: $('#toastMsg'), toastUndo: $('#toastUndo'),
     printTitle: $('#printTitle'), printDate: $('#printDate')
   };
@@ -532,7 +534,13 @@
     const total = state.items.length;
     const done = state.items.filter(i => i.checked).length;
     el.progCount.innerHTML = `${done}<span>/${total}</span>`;
-    el.progLabel.textContent = total === 0 ? 'Your list is empty' : done === total ? 'All done — head to checkout!' : 'in the cart';
+    const money$ = totals();
+    const words = total === 0 ? 'Your list is empty' : done === total ? 'All done — head to checkout!' : 'in the cart';
+    el.progLabel.innerHTML = `<span class="pl-text">${esc(words)}${money$.priced ? ' ·' : ''}</span>` + (money$.priced
+      ? ` <b class="pl-total" title="${money$.est ? 'Estimated total for the whole list. Tap any price to enter what you paid' : 'Total from prices shoppers entered'}">${money$.est ? '≈ ' : ''}${money(money$.all)}<span class="pl-word"> total</span></b>` : '');
+    const nCoupons = state.coupons && state.items.length ? state.items.reduce((n, it) => n + (couponsFor(it).length ? 1 : 0), 0) : 0;
+    el.couponCount.textContent = nCoupons || '';
+    el.couponCount.hidden = !nCoupons;
     el.progBar.style.width = total ? `${(done / total) * 100}%` : '0%';
     el.orderBtn.setAttribute('aria-pressed', state.prefs.reverse);
     el.orderLabel.textContent = state.prefs.reverse ? 'Back → front' : 'Front → back';
@@ -595,9 +603,16 @@
     shownSections = new Set(gs.map(g => g.sec.key));
 
     const unknown = gs.find(g => g.sec.unknown);
-    el.foot.innerHTML = `Aisles from the ${esc(STORES[state.storeId].name)} #${esc(STORES[state.storeId].number)} Shoppers' Guide`
+    const t = money$;
+    const priceLine = t.priced
+      ? `<div class="foot-total"><b>${t.est ? 'Estimated total ≈ ' : 'Total '}${money(t.all)}</b>${t.cart ? ` · ${money(t.cart)} in the cart` : ''}`
+        + (t.missing ? ` · ${t.missing} item${t.missing === 1 ? '' : 's'} not priced yet` : '')
+        + `<span>${t.est ? '“≈” prices are AI estimates (Market Basket doesn’t post prices online). Tap any price to enter what you paid.' : 'From prices shoppers at this store entered.'}</span></div>`
+      : ai.estError ? `<div class="foot-total"><span>${esc(ai.estError)} Tap “+ price” on an item to enter what it costs.</span></div>` : '';
+    el.foot.innerHTML = priceLine + `Aisles from the ${esc(STORES[state.storeId].name)} #${esc(STORES[state.storeId].number)} Shoppers' Guide`
       + (unknown ? ` · ${unknown.items.length} item${unknown.items.length === 1 ? '' : 's'} need an aisle` : '');
     renderRegulars();
+    scheduleEstimates();
   }
 
   function itemHtml(it) {
@@ -607,10 +622,17 @@
       : it.loc.via === 'you' ? 'You set this aisle — tap to change'
       : it.loc.via === 'shared' ? `Placed by shoppers at this store (${it.loc.shared.votes} vote${it.loc.shared.votes === 1 ? '' : 's'}) — tap to change`
       : `From the guide: ${it.loc.entry.item} … ${it.loc.aisle}`;
+    const p = priceFor(it);
+    const priceBtn = p
+      ? `<button class="price${p.src === 'shop' ? ' real' : ''}" type="button" data-act="price" title="${p.src === 'shop' ? 'Price shoppers at this store paid. Tap to change' : 'AI estimate. Tap to enter what you paid'}">${p.src === 'ai' ? '≈ ' : ''}${money(p.total)}</button>`
+      : estPending.has(estKey(it)) ? '<span class="price wait">pricing…</span>'
+      : `<button class="price add" type="button" data-act="price">+ price</button>`;
+    const cps = couponsFor(it);
+    const cpBtn = cps.length ? `<button class="cp-badge" type="button" data-act="coupon" title="Printable coupon found">✂ ${esc(cps[0].offer)}${cps.length > 1 ? ` +${cps.length - 1}` : ''}</button>` : '';
     return `
       <li class="item${it.checked ? ' checked' : ''}" data-id="${it.id}">
         <button class="check" type="button" role="checkbox" aria-checked="${it.checked}" aria-label="${esc(it.name)}" data-act="toggle"><span class="box">${ICON.check}</span></button>
-        <div class="name" data-act="rename">${highlight(it.name)}${it.qty ? `<span class="qty">${highlight(it.qty)}</span>` : ''}</div>
+        <div class="name" data-act="rename">${highlight(it.name)}${it.qty ? `<span class="qty">${highlight(it.qty)}</span>` : ''}<span class="sub">${priceBtn}${cpBtn}</span></div>
         <button class="aisle-btn${need ? ' need' : ''}" type="button" data-act="aisle" title="${esc(title)}" aria-label="${esc(need ? 'Set aisle for ' + it.name : 'Move ' + it.name + ' (now ' + chip + ')')}">${esc(chip)}${ICON.caret}</button>
         <button class="rm" type="button" data-act="remove" aria-label="Remove ${esc(it.name)}">${ICON.x}</button>
       </li>`;
@@ -762,6 +784,7 @@
     save();
     renderStore(); render(); renderPreview();
     fetchShared(id, true);
+    fetchPrices(id, true);
     if (el.guideSheet.open) renderGuide();
     toast(state.items.length ? `Re-sorted for ${STORES[id].name} #${STORES[id].number}` : `Now shopping ${STORES[id].name} #${STORES[id].number}`);
   }
@@ -772,8 +795,13 @@
     for (const g of groups()) {
       const title = g.sec.unknown ? 'NEEDS AN AISLE' : g.sec.num ? `${g.sec.kicker} ${g.sec.num}`.toUpperCase() : g.sec.word.toUpperCase();
       lines.push('', title);
-      for (const it of g.items) lines.push(`${it.checked ? '☑' : '☐'} ${it.name}${it.qty ? ` (${it.qty})` : ''}`);
+      for (const it of g.items) {
+        const p = priceFor(it);
+        lines.push(`${it.checked ? '☑' : '☐'} ${it.name}${it.qty ? ` (${it.qty})` : ''}${p ? `  ${p.src === 'ai' ? '≈' : ''}${money(p.total)}` : ''}`);
+      }
     }
+    const t = totals();
+    if (t.priced) lines.push('', `${t.est ? 'Estimated total ≈ ' : 'Total '}${money(t.all)}${t.missing ? ` (${t.missing} not priced)` : ''}`);
     return lines.join('\n');
   }
   async function shareList() {
@@ -1027,6 +1055,246 @@
     }
   }
 
+  // ────────────────────────────── Prices ──────────────────────────────
+  // Each item's price comes from what shoppers at this store paid (shared, middle value of their
+  // reports), else from the AI's estimate of the usual Market Basket price. Market Basket doesn't
+  // post prices online, so estimates are labeled "≈" and anyone can tap to enter the real price.
+  const EST_KEY = 'mb2.estimates';
+  let estimates = {};
+  try { estimates = JSON.parse(localStorage.getItem(EST_KEY) || '{}') || {}; } catch (e) { /* ignore */ }
+  const estKey = (it) => keyOf(it.name) + '|' + String(it.qty || '').trim().toLowerCase();
+  const money = (n) => '$' + (Math.round(n * 100) / 100).toFixed(2);
+  const ai = { enabled: null, estError: '', estRetryAt: 0 };
+  const estPending = new Set();
+
+  // How many of the item the amount means, for shopper prices (which are per package or per lb).
+  function qtyMult(qty) {
+    const m = String(qty || '').trim().match(/^(\d+(?:\.\d+)?)(?:\s*\/\s*(\d+))?|^([½¼¾⅓⅔])/);
+    if (!m) return 1;
+    if (m[3]) return { '½': .5, '¼': .25, '¾': .75, '⅓': 1 / 3, '⅔': 2 / 3 }[m[3]];
+    const n = m[2] ? +m[1] / +m[2] : +m[1];
+    return n > 0 && n < 100 ? n : 1;
+  }
+
+  const storePrices = {};     // storeId → { itemKey: { name, price, reports } }
+  const pricesFetchedAt = {};
+  function pricesFor(storeId) {
+    if (!storePrices[storeId]) {
+      try { storePrices[storeId] = JSON.parse(localStorage.getItem('mb2.prices.' + storeId) || '{}') || {}; } catch (e) { storePrices[storeId] = {}; }
+    }
+    return storePrices[storeId];
+  }
+  function setPrices(storeId, map) {
+    storePrices[storeId] = map || {};
+    try { localStorage.setItem('mb2.prices.' + storeId, JSON.stringify(storePrices[storeId])); } catch (e) { /* full */ }
+  }
+  async function fetchPrices(storeId = state.storeId, force = false) {
+    if (!force && Date.now() - (pricesFetchedAt[storeId] || 0) < 60000) return;
+    pricesFetchedAt[storeId] = Date.now();
+    try {
+      const r = await fetch('/api/prices?store=' + encodeURIComponent(storeId), { cache: 'no-store' });
+      if (!r.ok) return;
+      const data = await r.json();
+      const before = JSON.stringify(pricesFor(storeId));
+      setPrices(storeId, data.prices || {});
+      if (storeId === state.storeId && JSON.stringify(storePrices[storeId]) !== before) render();
+    } catch (e) { /* offline: keep the cached copy */ }
+  }
+  async function fetchAiStatus() {
+    try { const r = await fetch('/api/ai', { cache: 'no-store' }); ai.enabled = r.ok ? !!(await r.json()).enabled : false; }
+    catch (e) { ai.enabled = false; }
+    render();
+  }
+
+  function priceFor(it) {
+    const sp = pricesFor(state.storeId)[keyOf(it.name)];
+    if (sp && sp.price > 0) return { total: sp.price * qtyMult(it.qty), unit: sp.price, src: 'shop', reports: sp.reports };
+    const e = estimates[estKey(it)];
+    if (e) return { total: e.lineTotal, unit: e.unitPrice, unitLabel: e.unit, src: 'ai' };
+    return null;
+  }
+  function totals() {
+    let all = 0, cart = 0, missing = 0, est = false;
+    for (const it of state.items) {
+      const p = priceFor(it);
+      if (!p) { missing++; continue; }
+      all += p.total;
+      if (it.checked) cart += p.total;
+      if (p.src === 'ai') est = true;
+    }
+    return { all, cart, missing, est, priced: state.items.length - missing };
+  }
+
+  // Ask the server (and its AI) for estimates of anything not priced yet. Debounced, and backs off
+  // for a while if the server says no (AI not set up, or too many requests).
+  let estTimer = null;
+  function scheduleEstimates() { clearTimeout(estTimer); estTimer = setTimeout(fetchEstimates, 600); }
+  async function fetchEstimates() {
+    if (ai.enabled !== true || Date.now() < ai.estRetryAt) return;
+    const need = state.items.filter(it => !priceFor(it) && !estPending.has(estKey(it))).slice(0, 60);
+    if (!need.length) return;
+    need.forEach(it => estPending.add(estKey(it)));
+    render();
+    try {
+      const r = await fetch('/api/estimate', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: need.map(it => ({ name: it.name, qty: it.qty || '' })) })
+      });
+      const data = await r.json().catch(() => ({}));
+      (data.prices || []).forEach((p, i) => { if (p && need[i]) estimates[estKey(need[i])] = p; });
+      const keys = Object.keys(estimates);
+      if (keys.length > 3000) keys.slice(0, keys.length - 3000).forEach(k => delete estimates[k]);
+      try { localStorage.setItem(EST_KEY, JSON.stringify(estimates)); } catch (e) { /* full */ }
+      if (!r.ok) { ai.estError = data.error || 'Price estimates are unavailable'; ai.estRetryAt = Date.now() + 10 * 60000; }
+      else ai.estError = data.error || '';
+    } catch (e) {
+      ai.estRetryAt = Date.now() + 60000;
+    } finally {
+      need.forEach(it => estPending.delete(estKey(it)));
+      render();
+    }
+  }
+
+  // Tell the server what this shopper paid at this store (null takes the report back).
+  function reportPrice(it, price) {
+    const storeId = state.storeId, key = keyOf(it.name);
+    const mine = ((state.myPrices ||= {})[storeId] ||= {});
+    const map = { ...pricesFor(storeId) };
+    if (price === null) { delete mine[key]; if (map[key] && map[key].reports <= 1) delete map[key]; }
+    else { mine[key] = price; map[key] = { name: it.name, price, reports: Math.max(1, map[key]?.reports || 0) }; }
+    setPrices(storeId, map); save(); render();
+    fetch('/api/prices?store=' + encodeURIComponent(storeId), {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, name: it.name, price })
+    }).then(r => r.ok && r.json()).then(res => {
+      if (!res) return;
+      const m = { ...pricesFor(storeId) };
+      if (res.price) m[key] = { name: it.name, price: res.price, reports: res.reports }; else delete m[key];
+      setPrices(storeId, m);
+      if (storeId === state.storeId) render();
+    }).catch(() => { /* offline: shows on this device; shared next time */ });
+  }
+
+  let pricingId = null;
+  function openPriceSheet(id) {
+    const it = itemById(id);
+    if (!it) return;
+    pricingId = id;
+    const s = STORES[state.storeId];
+    const p = priceFor(it);
+    const mine = state.myPrices?.[state.storeId]?.[keyOf(it.name)];
+    el.priceSub.innerHTML = `<b>${esc(it.name)}</b>${it.qty ? ` × ${esc(it.qty)}` : ''} at ${esc(s.name)} #${esc(s.number)}`;
+    let now;
+    if (!p) now = estPending.has(estKey(it)) ? 'Getting an estimate…' : 'No price yet.';
+    else if (p.src === 'shop') now = `Shoppers at this store paid <b>${money(p.unit)}</b>${p.reports > 1 ? ` (middle of ${p.reports} reports)` : ''}${qtyMult(it.qty) !== 1 ? ` · <b>${money(p.total)}</b> for ${esc(it.qty)}` : ''}.`;
+    else now = `Estimated <b>≈ ${money(p.total)}</b>${p.unitLabel && p.unit !== p.total ? ` (about ${money(p.unit)} ${/^each$/i.test(p.unitLabel) ? 'each' : 'per ' + esc(p.unitLabel)})` : ''}. This is an AI estimate of the usual Market Basket price, because Market Basket doesn’t post its prices online.`;
+    el.priceBody.innerHTML = `<p class="price-now">${now}</p>
+      <form class="price-form" id="priceForm">
+        <label for="priceInput">What did you pay${/\b(lb|lbs|pound)/i.test(it.qty) ? ' per lb' : ' for one'}?</label>
+        <div class="row"><span class="dollar">$</span><input class="field" id="priceInput" name="price" type="text" inputmode="decimal" autocomplete="off" placeholder="0.00" value="${mine ? esc(Number(mine).toFixed(2)) : ''}" />
+        <button class="btn primary" type="submit" style="flex:none">Save price</button></div>
+        <p class="hint-sm">Shared with other shoppers at this store, so everyone’s totals get more accurate.</p>
+      </form>
+      ${mine ? '<div class="custom-row"><button class="btn ghost sm" type="button" data-price-clear>Remove my price</button></div>' : ''}`;
+    el.priceSheet.showModal();
+    if (matchMedia('(pointer: fine)').matches) $('#priceInput').focus();
+  }
+  function savePriceFromSheet(raw) {
+    const it = itemById(pricingId);
+    if (!it) return;
+    if (raw === null) { reportPrice(it, null); el.priceSheet.close(); return toast(`Removed your price for ${it.name}`); }
+    const n = parseFloat(String(raw).replace(/[$,\s]/g, ''));
+    if (!(n > 0 && n < 1000)) { toast('Enter a price like 3.49'); return; }
+    reportPrice(it, Math.round(n * 100) / 100);
+    el.priceSheet.close();
+    toast(`${it.name}: ${money(n)} (saved & shared with shoppers at this store)`);
+  }
+
+  // ────────────────────────────── Coupons ──────────────────────────────
+  // The coupon finder: an AI agent on the server searches coupon sites and brand websites for
+  // printable manufacturer coupons for this list (Market Basket takes those, and has no store
+  // coupons of its own). Each search costs money, so it only runs when you tap the button.
+  const listSig = () => [...new Set(state.items.map(i => i.name.trim().toLowerCase()))].sort().join('|');
+  let couponRun = { busy: false, error: '', started: 0 };
+  let couponTick = null;
+  function couponsFor(it) {
+    const c = state.coupons;
+    if (!c || !Array.isArray(c.list)) return [];
+    const n = it.name.trim().toLowerCase();
+    return c.list.filter(cp => String(cp.item).trim().toLowerCase() === n);
+  }
+  function openCoupons() {
+    renderCoupons();
+    el.couponSheet.showModal();
+  }
+  async function searchCoupons() {
+    if (!state.items.length) return toast('Add some items first');
+    if (couponRun.busy) return;
+    couponRun = { busy: true, error: '', started: Date.now() };
+    renderCoupons();
+    clearInterval(couponTick);
+    couponTick = setInterval(() => { if (el.couponSheet.open) renderCoupons(); }, 1000);
+    const sig = listSig();
+    try {
+      const r = await fetch('/api/coupons', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ store: state.storeId, items: state.items.map(i => i.name) })
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.error || `Coupon search failed (${r.status})`);
+      state.coupons = { sig, list: data.coupons || [], note: data.note || '', at: data.searchedAt || new Date().toISOString() };
+      save();
+      couponRun = { busy: false, error: '', started: 0 };
+      const n = state.coupons.list.length;
+      if (!el.couponSheet.open) toast(n ? `Found ${n} printable coupon${n === 1 ? '' : 's'}. Tap Coupons to see them.` : 'No printable coupons found for this list right now');
+    } catch (e) {
+      couponRun = { busy: false, error: navigator.onLine === false ? 'You’re offline. Try again when you’re connected.' : (e.message || 'Couldn’t reach the server'), started: 0 };
+    } finally {
+      clearInterval(couponTick);
+      render(); renderCoupons();
+    }
+  }
+  const SCISSORS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.1 15.9M14.5 14.5L20 20M8.1 8.1L12 12"/></svg>';
+  function renderCoupons() {
+    const c = state.coupons;
+    const stale = c && c.sig !== listSig();
+    let html = '';
+    if (couponRun.busy) {
+      const secs = Math.round((Date.now() - couponRun.started) / 1000);
+      html = `<div class="cp-busy"><span class="spinner" aria-hidden="true"></span>
+        <div><b>Searching coupon sites for ${state.items.length} item${state.items.length === 1 ? '' : 's'}…</b>
+        <span>Checking Coupons.com, brand websites and coupon roundups. This usually takes 30–90 seconds. (${secs}s)</span></div></div>`;
+    } else if (couponRun.error) {
+      html = `<div class="cp-empty"><p>${esc(couponRun.error)}</p><button class="btn primary" type="button" data-cp-search>Try again</button></div>`;
+    } else if (!c) {
+      html = `<div class="cp-empty">
+        <p>The coupon finder searches the web for <b>printable manufacturer coupons</b> for the items on your list, then links you straight to each one so you can print it.</p>
+        <p class="hint-sm">Market Basket accepts manufacturer coupons. It doesn’t have store coupons or a loyalty card.</p>
+        ${ai.enabled === false ? '<p class="cp-warn">The coupon finder isn’t switched on for this server yet.</p>' : `<button class="btn primary" type="button" data-cp-search ${state.items.length ? '' : 'disabled'}>${SCISSORS} Find coupons for my list</button>`}
+      </div>`;
+    }
+    if (c && !couponRun.busy) {
+      const when = new Date(c.at).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' });
+      const byItem = new Map();
+      for (const cp of c.list) { if (!byItem.has(cp.item)) byItem.set(cp.item, []); byItem.get(cp.item).push(cp); }
+      html += `<div class="cp-meta"><span>${c.list.length ? `${c.list.length} coupon${c.list.length === 1 ? '' : 's'}` : 'No printable coupons found'} · searched ${esc(when)}</span>
+        <button class="btn sm" type="button" data-cp-search>${stale ? 'List changed: search again' : 'Search again'}</button></div>`;
+      if (c.note) html += `<p class="cp-note">${esc(c.note)}</p>`;
+      for (const [item, list] of byItem) {
+        html += `<div class="cp-item"><h3>${esc(item)}</h3>${list.map(cp => `
+          <div class="cp-card">
+            <div class="cp-offer">${esc(cp.offer)}</div>
+            <div class="cp-brand">${esc(cp.brand)}</div>
+            <div class="cp-fine">${esc(cp.source)}${cp.expires ? ` · expires ${esc(cp.expires)}` : ''}</div>
+            ${cp.how ? `<div class="cp-fine">${esc(cp.how)}</div>` : ''}
+            <a class="btn sm" href="${esc(cp.url)}" target="_blank" rel="noopener noreferrer nofollow">Open &amp; print ↗</a>
+          </div>`).join('')}</div>`;
+      }
+      if (c.list.length) html += `<p class="hint-sm cp-foot">These coupons were found by AI on other websites. Check the details on the coupon page before you print. Some sites need a free printer plug-in or a sign-in.</p>`;
+    }
+    el.couponBody.innerHTML = html;
+  }
+
   // ────────────────────────────── Toast ──────────────────────────────
   let toastTimer = null, toastUndoFn = null;
   function toast(msg, undo) {
@@ -1090,6 +1358,8 @@
       else if (a === 'remove') removeItem(id);
       else if (a === 'aisle') openAislePicker(id);
       else if (a === 'rename') startRename(id, act);
+      else if (a === 'price') openPriceSheet(id);
+      else if (a === 'coupon') openCoupons();
     });
 
     // Search the active list
@@ -1136,11 +1406,12 @@
       if (a === 'share') shareList();
       else if (a === 'print') printList();
       else if (a === 'saved') { renderSaved(); el.savedSheet.showModal(); }
+      else if (a === 'coupons') openCoupons();
       else bulk(a);
     });
 
     // Sheets: close buttons + click on backdrop
-    for (const d of [el.aisleSheet, el.guideSheet, el.savedSheet, el.storeSheet]) {
+    for (const d of [el.aisleSheet, el.guideSheet, el.savedSheet, el.storeSheet, el.priceSheet, el.couponSheet]) {
       d.addEventListener('click', e => {
         if (e.target.closest('[data-close]') || e.target === d) d.close();
       });
@@ -1157,6 +1428,11 @@
       const v = new FormData(e.target).get('custom');
       if (v && String(v).trim()) setAisle(String(v).trim());
     });
+
+    el.priceBody.addEventListener('submit', e => { e.preventDefault(); savePriceFromSheet(new FormData(e.target).get('price')); });
+    el.priceBody.addEventListener('click', e => { if (e.target.closest('[data-price-clear]')) savePriceFromSheet(null); });
+    el.couponBtn.addEventListener('click', openCoupons);
+    el.couponBody.addEventListener('click', e => { if (e.target.closest('[data-cp-search]')) searchCoupons(); });
 
     el.guideFilter.addEventListener('input', renderGuide);
     el.guideList.addEventListener('click', e => {
@@ -1186,7 +1462,7 @@
       if (e.target.closest('[data-sync-stop]')) stopSync();
     });
     // pick up changes made on your other devices when you come back to the app
-    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { syncNow(); fetchShared(); } });
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { syncNow(); fetchShared(); fetchPrices(); } });
     window.addEventListener('online', () => syncNow());
     el.saveBtn.addEventListener('click', saveCurrent);
     el.saveName.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveCurrent(); } });
@@ -1228,6 +1504,8 @@
     renderPreview();
     if (getSyncCode()) syncNow();
     fetchShared(state.storeId, true);
+    fetchPrices(state.storeId, true);
+    fetchAiStatus();
   }
 
   // Exposed for quick testing from the console.

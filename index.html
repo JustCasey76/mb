@@ -410,6 +410,53 @@
   .saved-row .meta span { font-size: 13px; color: var(--ink-3); }
   .save-new { display: flex; gap: 8px; padding: 12px 8px; }
 
+  /* ---------- Prices & coupons ---------- */
+  .name .sub { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+  .name .sub:empty { display: none; }
+  .price, .cp-badge {
+    border: 0; background: transparent; padding: 1px 0; font-size: 13px; font-weight: 700; color: var(--ink-2);
+    font-variant-numeric: tabular-nums; border-radius: 4px; min-height: 24px; text-decoration: none;
+  }
+  .price:hover { color: var(--ink); text-decoration: underline; }
+  .price.real { color: var(--green); }
+  .price.add { color: var(--ink-3); font-weight: 400; }
+  .price.wait { color: var(--ink-3); font-weight: 400; font-style: italic; }
+  .cp-badge { color: var(--red); background: var(--red-soft); padding: 1px 8px; border-radius: 999px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .item.checked .price, .item.checked .cp-badge { opacity: .6; }
+  .progress-label .pl-total { font-variant-numeric: tabular-nums; color: var(--ink); white-space: nowrap; }
+  .count-dot { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--red); color: #fff; font-size: 11px; font-weight: 700; display: inline-grid; place-items: center; line-height: 1; }
+  .count-dot[hidden] { display: none; }
+  #couponBtn { position: relative; }
+  .foot-total { margin-bottom: 8px; font-size: 14px; color: var(--ink-2); }
+  .foot-total b { color: var(--ink); font-size: 16px; }
+  .foot-total span { display: block; font-size: 12.5px; color: var(--ink-3); margin-top: 2px; }
+
+  .price-now { margin: 12px 8px; font-size: 15px; }
+  .price-form { padding: 0 8px; }
+  .price-form label { display: block; font-weight: 700; margin-bottom: 6px; }
+  .price-form .row { display: flex; gap: 8px; align-items: center; }
+  .price-form .row .field { flex: 1; font-variant-numeric: tabular-nums; }
+  .price-form .dollar { font-weight: 700; font-size: 18px; color: var(--ink-2); }
+  .hint-sm { font-size: 13px; color: var(--ink-3); margin: 8px 0; }
+
+  .cp-empty { padding: 16px 8px; }
+  .cp-empty p { margin: 0 0 10px; }
+  .cp-empty .btn svg { width: 18px; height: 18px; }
+  .cp-warn { color: var(--warn); font-weight: 700; }
+  .cp-busy { display: flex; gap: 14px; align-items: flex-start; padding: 22px 8px; }
+  .cp-busy span:not(.spinner) { display: block; font-size: 13.5px; color: var(--ink-3); margin-top: 4px; }
+  .spinner { width: 26px; height: 26px; border-radius: 50%; border: 3px solid var(--rule-2); border-top-color: var(--red); flex: none; animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .cp-meta { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 8px 4px; font-size: 13px; color: var(--ink-3); font-weight: 700; }
+  .cp-note { margin: 6px 8px; font-size: 14px; color: var(--ink-2); }
+  .cp-item h3 { margin: 14px 8px 6px; font-family: var(--display); font-weight: 800; font-size: 20px; text-transform: uppercase; letter-spacing: .01em; }
+  .cp-card { margin: 0 8px 8px; padding: 12px 14px; border: 1.5px dashed var(--red); border-radius: 12px; background: var(--paper); display: flex; flex-direction: column; gap: 3px; }
+  .cp-offer { font-weight: 700; font-size: 17px; color: var(--red); }
+  .cp-brand { font-size: 14.5px; }
+  .cp-fine { font-size: 12.5px; color: var(--ink-3); }
+  .cp-card .btn { align-self: flex-start; margin-top: 6px; text-decoration: none; color: var(--ink); }
+  .cp-foot { margin: 14px 8px 4px; }
+
   /* ---------- Toast ---------- */
   .toast {
     position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom)); z-index: 60;
@@ -448,6 +495,10 @@
     .hint { display: none; }
     body { background-attachment: scroll; }
     .tools .btn .lbl { display: none; }
+    .progress-label:has(.pl-total) .pl-text { display: none; }
+    .progress-label .pl-total { font-size: 14px; }
+    .progress-label .pl-word { display: none; }
+    #couponBtn .count-dot { position: absolute; top: -5px; right: -5px; }
     .section { grid-template-columns: 62px minmax(0, 1fr); }
     .sign .k { font-size: 9.5px; letter-spacing: .12em; }
     .items { padding: 0 4px 6px; }
@@ -565,6 +616,10 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12s3.5-7 9-7 9 7 9 7-3.5 7-9 7-9-7-9-7z"/><circle cx="12" cy="12" r="3"/></svg>
             <span class="lbl">Hide done</span>
           </button>
+          <button class="btn sm" id="couponBtn" type="button" title="Find printable coupons for your list">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.1 15.9M14.5 14.5L20 20M8.1 8.1L12 12"/></svg>
+            <span class="lbl">Coupons</span><span class="count-dot" id="couponCount" hidden></span>
+          </button>
           <button class="btn sm" id="saveListBtn" type="button" title="Save this list or load a saved one">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
             <span class="lbl">Save</span>
@@ -577,6 +632,7 @@
             <div class="menu" id="menu" role="menu">
               <button role="menuitem" data-act="share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v13"/></svg><span id="shareLabel">Share / copy list</span></button>
               <button role="menuitem" data-act="print"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>Print</button>
+              <button role="menuitem" data-act="coupons"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.1 15.9M14.5 14.5L20 20M8.1 8.1L12 12"/></svg>Find coupons</button>
               <button role="menuitem" data-act="saved"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>Saved lists</button>
               <hr />
               <button role="menuitem" data-act="uncheck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/></svg>Uncheck everything</button>
@@ -661,6 +717,30 @@
       <div id="savedList"></div>
       <div class="sync-box" id="syncBox"></div>
     </div>
+  </dialog>
+
+  <!-- Price for one item -->
+  <dialog class="sheet" id="priceSheet" aria-labelledby="priceTitle">
+    <div class="sheet-head">
+      <div>
+        <h2 id="priceTitle">Price</h2>
+        <p id="priceSub"></p>
+      </div>
+      <button class="btn sm ghost x" type="button" data-close aria-label="Close">✕</button>
+    </div>
+    <div class="sheet-body" id="priceBody"></div>
+  </dialog>
+
+  <!-- Coupon finder -->
+  <dialog class="sheet" id="couponSheet" aria-labelledby="couponTitle">
+    <div class="sheet-head">
+      <div>
+        <h2 id="couponTitle">Coupons</h2>
+        <p>Printable manufacturer coupons for what’s on your list.</p>
+      </div>
+      <button class="btn sm ghost x" type="button" data-close aria-label="Close">✕</button>
+    </div>
+    <div class="sheet-body" id="couponBody"></div>
   </dialog>
 
   <div class="toast" id="toast" role="status" aria-live="polite"><span id="toastMsg"></span><button id="toastUndo" type="button" hidden>Undo</button></div>

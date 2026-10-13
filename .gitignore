@@ -3,3 +3,11 @@ node_modules/
 *.log
 .localdata/
 data/
+
+# Secrets: API keys live only in Railway variables, never in this public repo
+.env
+.env.*
+*.key
+*key*.txt
+*secret*
+.claude/settings.local.json
