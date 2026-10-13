@@ -275,6 +275,7 @@ const estimateLimited = hourly(40);
 const couponLimited = hourly(6);
 const COUPON_DAILY_CAP = Number(process.env.COUPON_DAILY_CAP) || 150; // whole-server cap on paid coupon searches
 let couponDay = { day: '', n: 0 };
+const COUPON_SEARCH_VERSION = 'v2'; // v2: also Sunday-insert coupons and brand rebates
 const couponRuns = new Map(); // list → search in progress, so a double-tap doesn't pay twice
 
 async function handleEstimate(req, res) {
@@ -306,8 +307,9 @@ async function handleCoupons(req, res) {
   if (!info) return json(res, 400, { error: 'Unknown store' });
   const names = [...new Set((Array.isArray(body.items) ? body.items : []).map(n => cleanText(n, 100)).filter(Boolean))].slice(0, 60);
   if (!names.length) return json(res, 400, { error: 'Add some items first.' });
-  const sig = names.map(n => n.toLowerCase()).sort().join('|');
-  const cached = couponCache.get(sig);
+  // bump COUPON_SEARCH_VERSION whenever the search changes, so results saved by an older search aren't reused
+  const sig = COUPON_SEARCH_VERSION + '|' + names.map(n => n.toLowerCase()).sort().join('|');
+  const cached = body.fresh ? null : couponCache.get(sig); // 'Search again' always runs a new search
   if (cached) return json(res, 200, { ...cached, cached: true });
   if (!AI.enabled()) return json(res, 503, { error: 'The coupon finder is not set up on this server yet.' });
   if (!couponRuns.has(sig)) {

@@ -1231,7 +1231,7 @@
     renderCoupons();
     el.couponSheet.showModal();
   }
-  async function searchCoupons() {
+  async function searchCoupons(fresh = false) {
     if (!state.items.length) return toast('Add some items first');
     if (couponRun.busy) return;
     couponRun = { busy: true, error: '', started: Date.now() };
@@ -1242,7 +1242,7 @@
     try {
       const r = await fetch('/api/coupons', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ store: state.storeId, items: state.items.map(i => i.name) })
+        body: JSON.stringify({ store: state.storeId, items: state.items.map(i => i.name), fresh })
       });
       const data = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(data.error || `Coupon search failed (${r.status})`);
@@ -1283,7 +1283,7 @@
       const byItem = new Map();
       for (const cp of c.list) { if (!byItem.has(cp.item)) byItem.set(cp.item, []); byItem.get(cp.item).push(cp); }
       html += `<div class="cp-meta"><span>${c.list.length ? `${c.list.length} deal${c.list.length === 1 ? '' : 's'}` : 'No coupons or rebates found'} · searched ${esc(when)}</span>
-        <button class="btn sm" type="button" data-cp-search>${stale ? 'List changed: search again' : 'Search again'}</button></div>`;
+        <button class="btn sm" type="button" data-cp-search data-fresh>${stale ? 'List changed: search again' : 'Search again'}</button></div>`;
       if (c.note) html += `<p class="cp-note">${esc(c.note)}</p>`;
       for (const [item, list] of byItem) {
         html += `<div class="cp-item"><h3>${esc(item)}</h3>${list.map(cp => `
@@ -1438,7 +1438,7 @@
     el.priceBody.addEventListener('submit', e => { e.preventDefault(); savePriceFromSheet(new FormData(e.target).get('price')); });
     el.priceBody.addEventListener('click', e => { if (e.target.closest('[data-price-clear]')) savePriceFromSheet(null); });
     el.couponBtn.addEventListener('click', openCoupons);
-    el.couponBody.addEventListener('click', e => { if (e.target.closest('[data-cp-search]')) searchCoupons(); });
+    el.couponBody.addEventListener('click', e => { const b = e.target.closest('[data-cp-search]'); if (b) searchCoupons(b.hasAttribute('data-fresh')); });
 
     el.guideFilter.addEventListener('input', renderGuide);
     el.guideList.addEventListener('click', e => {
