@@ -452,6 +452,9 @@
   .cp-item h3 { margin: 14px 8px 6px; font-family: var(--display); font-weight: 800; font-size: 20px; text-transform: uppercase; letter-spacing: .01em; }
   .cp-card { margin: 0 8px 8px; padding: 12px 14px; border: 1.5px dashed var(--red); border-radius: 12px; background: var(--paper); display: flex; flex-direction: column; gap: 3px; }
   .cp-offer { font-weight: 700; font-size: 17px; color: var(--red); }
+  .cp-type { align-self: flex-start; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; background: var(--red-soft); color: var(--red); }
+  .cp-type.insert { background: var(--warn-soft); color: var(--warn); }
+  .cp-type.rebate { background: var(--green-soft); color: var(--green); }
   .cp-brand { font-size: 14.5px; }
   .cp-fine { font-size: 12.5px; color: var(--ink-3); }
   .cp-card .btn { align-self: flex-start; margin-top: 6px; text-decoration: none; color: var(--ink); }
@@ -616,7 +619,7 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12s3.5-7 9-7 9 7 9 7-3.5 7-9 7-9-7-9-7z"/><circle cx="12" cy="12" r="3"/></svg>
             <span class="lbl">Hide done</span>
           </button>
-          <button class="btn sm" id="couponBtn" type="button" title="Find printable coupons for your list">
+          <button class="btn sm" id="couponBtn" type="button" title="Find coupons and rebates for your list">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.1 15.9M14.5 14.5L20 20M8.1 8.1L12 12"/></svg>
             <span class="lbl">Coupons</span><span class="count-dot" id="couponCount" hidden></span>
           </button>
@@ -736,7 +739,7 @@
     <div class="sheet-head">
       <div>
         <h2 id="couponTitle">Coupons</h2>
-        <p>Printable manufacturer coupons for what’s on your list.</p>
+        <p>Manufacturer coupons and rebates for what’s on your list.</p>
       </div>
       <button class="btn sm ghost x" type="button" data-close aria-label="Close">✕</button>
     </div>

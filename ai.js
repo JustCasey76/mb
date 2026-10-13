@@ -128,14 +128,15 @@ async function estimatePrices(items, cache) {
 const round = (n) => Math.round(n * 100) / 100;
 
 // ── Coupon agent ────────────────────────────────────────────────────────────────────
-// The model searches the web for currently active, printable MANUFACTURER coupons for the items
-// (Market Basket has no store coupons or loyalty card, but accepts manufacturer coupons), then
+// The model searches the web for currently active MANUFACTURER savings for the items — printable
+// coupons, Sunday newspaper insert coupons, and brand rebates (Market Basket has no store coupons
+// or loyalty card, but accepts manufacturer coupons, and rebates work with any receipt), then
 // reports them through a strict function call. Links are kept only if they come from pages the
 // search actually turned up.
 const REPORT_TOOL = {
   type: 'function',
   name: 'report_coupons',
-  description: 'Report the active printable coupons you found. Call this exactly once, at the end, even if you found none.',
+  description: 'Report the active coupons and rebates you found. Call this exactly once, at the end, even if you found none.',
   strict: true,
   parameters: {
     type: 'object',
@@ -145,15 +146,16 @@ const REPORT_TOOL = {
         items: {
           type: 'object',
           properties: {
+            type: { type: 'string', enum: ['printable', 'insert', 'rebate'], description: 'printable = print at home; insert = clip from a Sunday newspaper insert; rebate = brand rebate paid back after you send in the receipt' },
             item: { type: 'string', description: 'the shopping-list item this coupon is for, exactly as written in the list' },
             brand: { type: 'string', description: 'brand and product the coupon covers' },
-            offer: { type: 'string', description: 'the deal, e.g. "$1.00 off 2" or "Save $0.75 on one 12 oz bag"' },
+            offer: { type: 'string', description: 'the deal in under 80 characters, e.g. "$1.00 off 2", "Save $0.75 on one 12 oz bag", "$5 back when you spend $20"' },
             expires: { type: 'string', description: 'expiration date as shown (YYYY-MM-DD if known), or "" if not shown' },
-            url: { type: 'string', description: 'the page where the coupon can be clipped/printed, copied exactly from your search results' },
-            source: { type: 'string', description: 'site name, e.g. "Coupons.com" or the brand website' },
-            how: { type: 'string', description: 'one short line on how to print it, e.g. "Click Clip, then Print (needs the free printer plug-in)"' }
+            url: { type: 'string', description: 'the page with the coupon/rebate details (print page, insert listing, or rebate form), copied exactly from your search results' },
+            source: { type: 'string', description: 'site name, e.g. "Coupons.com", "SmartSource insert", or the brand website' },
+            how: { type: 'string', description: 'one short line on how to use it, e.g. "Click Clip, then Print", "Clip from the 10/12 SmartSource insert in the Sunday paper", or "Upload your receipt at the link within 30 days"' }
           },
-          required: ['item', 'brand', 'offer', 'expires', 'url', 'source', 'how'],
+          required: ['type', 'item', 'brand', 'offer', 'expires', 'url', 'source', 'how'],
           additionalProperties: false
         }
       },
@@ -181,14 +183,17 @@ async function findCoupons(items, store) {
     tools,
     include: ['web_search_call.action.sources'],
     input: `Today is ${today}. I'm shopping at Market Basket in ${store.name}, ${store.state}. ` +
-      `Find currently active manufacturer coupons I can PRINT at home for items on my list. ` +
-      `Market Basket has no store coupons or loyalty card, so only manufacturer coupons count.\n\n` +
+      `Find currently active manufacturer savings for items on my list, of three kinds: ` +
+      `(1) printable coupons I can print at home, (2) coupons in recent Sunday newspaper inserts (SmartSource, P&G, Save) I can clip, ` +
+      `and (3) brand rebates where I send in or upload my receipt. ` +
+      `Market Basket has no store coupons or loyalty card, but takes manufacturer coupons, so only manufacturer offers count.\n\n` +
       `My list:\n${items.map(n => `- ${n}`).join('\n')}\n\n` +
       `Rules:\n` +
-      `- Look on printable-coupon sites (Coupons.com, SmartSource, RetailMeNot printables, Hip2Save/Krazy Coupon Lady printable roundups) and brand websites.\n` +
-      `- Only include coupons that are printable (not app-only or store loyalty offers like Target Circle or Stop & Shop GO rewards) and that you saw listed on a real page. ` +
-      `Skip anything clearly expired as of ${today}; if a page lists a current printable coupon but shows no end date, include it with expires "".\n` +
-      `- Brand coupon pages (e.g. P&G Brand Saver, General Mills, Kraft Heinz) and printable-coupon roundups dated within the last few weeks count as real pages.\n` +
+      `- Look on printable-coupon sites (Coupons.com, RetailMeNot printables), Sunday insert previews and coupon databases (Coupons in the News, Krazy Coupon Lady, Hip2Save, sunday-paper-coupons.com), and brand websites and rebate pages (e.g. P&G Brand Saver, General Mills, Kraft Heinz).\n` +
+      `- For inserts, only use inserts from the last 4 weeks and give the insert name and date in "how" (shoppers can still find recent papers). ` +
+      `For rebates, only brand rebates that accept any store's receipt (not cashback apps like Ibotta or Fetch).\n` +
+      `- Do not include app-only or store loyalty offers (Target Circle, Stop & Shop GO rewards, digital load-to-card coupons). ` +
+      `Only include offers you saw listed on a real page. Skip anything clearly expired as of ${today}; if no end date is shown, use expires "".\n` +
       `- Copy each url exactly from your search results — never make up or guess a link.\n` +
       `- Skip items that are generic produce, meat, or store-brand staples unless a brand coupon clearly applies.\n` +
       `- Fewer, real coupons beat many doubtful ones. Finding none is a fine answer.\n` +
@@ -243,9 +248,10 @@ function cleanReport(input, items, seenUrls) {
     if (/^\d{4}-\d{2}-\d{2}$/.test(cp.expires || '') && cp.expires < today) continue;
     const idx = lc.indexOf(String(cp.item || '').toLowerCase());
     coupons.push({
+      type: ['printable', 'insert', 'rebate'].includes(cp.type) ? cp.type : 'printable',
       item: idx >= 0 ? items[idx] : String(cp.item || '').slice(0, 120),
       brand: String(cp.brand || '').slice(0, 120),
-      offer: String(cp.offer || '').slice(0, 160),
+      offer: String(cp.offer || '').slice(0, 240),
       expires: String(cp.expires || '').slice(0, 40),
       url: url.slice(0, 600),
       source: String(cp.source || hostOf(url)).slice(0, 60),

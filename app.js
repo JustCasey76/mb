@@ -492,9 +492,13 @@
       map.get(sec.key).items.push({ ...it, loc });
     }
     const list = [...map.values()];
+    // Always shopped last, whichever way you walk: meat second to last, produce last.
+    const TAIL = { 'above-meat': 1, meat: 2, produce: 3 };
     list.sort((a, b) => {
       if (a.sec.unknown) return -1;
       if (b.sec.unknown) return 1;
+      const ta = TAIL[a.sec.key] || 0, tb = TAIL[b.sec.key] || 0;
+      if (ta || tb) return ta - tb;
       return state.prefs.reverse ? b.sec.rank - a.sec.rank : a.sec.rank - b.sec.rank;
     });
     for (const g of list) g.items.sort((a, b) => (a.checked - b.checked) || a.name.localeCompare(b.name));
@@ -628,7 +632,7 @@
       : estPending.has(estKey(it)) ? '<span class="price wait">pricing…</span>'
       : `<button class="price add" type="button" data-act="price">+ price</button>`;
     const cps = couponsFor(it);
-    const cpBtn = cps.length ? `<button class="cp-badge" type="button" data-act="coupon" title="Printable coupon found">✂ ${esc(cps[0].offer)}${cps.length > 1 ? ` +${cps.length - 1}` : ''}</button>` : '';
+    const cpBtn = cps.length ? `<button class="cp-badge" type="button" data-act="coupon" title="Coupon or rebate found">✂ ${esc(cps[0].offer)}${cps.length > 1 ? ` +${cps.length - 1}` : ''}</button>` : '';
     return `
       <li class="item${it.checked ? ' checked' : ''}" data-id="${it.id}">
         <button class="check" type="button" role="checkbox" aria-checked="${it.checked}" aria-label="${esc(it.name)}" data-act="toggle"><span class="box">${ICON.check}</span></button>
@@ -1212,7 +1216,7 @@
 
   // ────────────────────────────── Coupons ──────────────────────────────
   // The coupon finder: an AI agent on the server searches coupon sites and brand websites for
-  // printable manufacturer coupons for this list (Market Basket takes those, and has no store
+  // manufacturer coupons (printable, Sunday-paper inserts) and brand rebates for this list (Market Basket takes those, and has no store
   // coupons of its own). Each search costs money, so it only runs when you tap the button.
   const listSig = () => [...new Set(state.items.map(i => i.name.trim().toLowerCase()))].sort().join('|');
   let couponRun = { busy: false, error: '', started: 0 };
@@ -1246,7 +1250,7 @@
       save();
       couponRun = { busy: false, error: '', started: 0 };
       const n = state.coupons.list.length;
-      if (!el.couponSheet.open) toast(n ? `Found ${n} printable coupon${n === 1 ? '' : 's'}. Tap Coupons to see them.` : 'No printable coupons found for this list right now');
+      if (!el.couponSheet.open) toast(n ? `Found ${n} coupon${n === 1 ? '' : 's'} or rebate${n === 1 ? '' : 's'}. Tap Coupons to see them.` : 'No coupons or rebates found for this list right now');
     } catch (e) {
       couponRun = { busy: false, error: navigator.onLine === false ? 'You’re offline. Try again when you’re connected.' : (e.message || 'Couldn’t reach the server'), started: 0 };
     } finally {
@@ -1255,6 +1259,7 @@
     }
   }
   const SCISSORS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.1 15.9M14.5 14.5L20 20M8.1 8.1L12 12"/></svg>';
+  const CP_TYPE = { printable: 'Print at home', insert: 'Sunday paper insert', rebate: 'Mail-in rebate' };
   function renderCoupons() {
     const c = state.coupons;
     const stale = c && c.sig !== listSig();
@@ -1263,12 +1268,12 @@
       const secs = Math.round((Date.now() - couponRun.started) / 1000);
       html = `<div class="cp-busy"><span class="spinner" aria-hidden="true"></span>
         <div><b>Searching coupon sites for ${state.items.length} item${state.items.length === 1 ? '' : 's'}…</b>
-        <span>Checking Coupons.com, brand websites and coupon roundups. This usually takes 30–90 seconds. (${secs}s)</span></div></div>`;
+        <span>Checking printable coupons, Sunday paper inserts and brand rebates. This usually takes 30–90 seconds. (${secs}s)</span></div></div>`;
     } else if (couponRun.error) {
       html = `<div class="cp-empty"><p>${esc(couponRun.error)}</p><button class="btn primary" type="button" data-cp-search>Try again</button></div>`;
     } else if (!c) {
       html = `<div class="cp-empty">
-        <p>The coupon finder searches the web for <b>printable manufacturer coupons</b> for the items on your list, then links you straight to each one so you can print it.</p>
+        <p>The coupon finder searches the web for manufacturer deals on the items on your list: <b>coupons you can print</b>, <b>coupons in recent Sunday newspaper inserts</b>, and <b>brand rebates</b> (send in your receipt, get money back). Each one links to the details.</p>
         <p class="hint-sm">Market Basket accepts manufacturer coupons. It doesn’t have store coupons or a loyalty card.</p>
         ${ai.enabled === false ? '<p class="cp-warn">The coupon finder isn’t switched on for this server yet.</p>' : `<button class="btn primary" type="button" data-cp-search ${state.items.length ? '' : 'disabled'}>${SCISSORS} Find coupons for my list</button>`}
       </div>`;
@@ -1277,20 +1282,21 @@
       const when = new Date(c.at).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' });
       const byItem = new Map();
       for (const cp of c.list) { if (!byItem.has(cp.item)) byItem.set(cp.item, []); byItem.get(cp.item).push(cp); }
-      html += `<div class="cp-meta"><span>${c.list.length ? `${c.list.length} coupon${c.list.length === 1 ? '' : 's'}` : 'No printable coupons found'} · searched ${esc(when)}</span>
+      html += `<div class="cp-meta"><span>${c.list.length ? `${c.list.length} deal${c.list.length === 1 ? '' : 's'}` : 'No coupons or rebates found'} · searched ${esc(when)}</span>
         <button class="btn sm" type="button" data-cp-search>${stale ? 'List changed: search again' : 'Search again'}</button></div>`;
       if (c.note) html += `<p class="cp-note">${esc(c.note)}</p>`;
       for (const [item, list] of byItem) {
         html += `<div class="cp-item"><h3>${esc(item)}</h3>${list.map(cp => `
           <div class="cp-card">
+            <span class="cp-type ${esc(cp.type || 'printable')}">${CP_TYPE[cp.type] || CP_TYPE.printable}</span>
             <div class="cp-offer">${esc(cp.offer)}</div>
             <div class="cp-brand">${esc(cp.brand)}</div>
             <div class="cp-fine">${esc(cp.source)}${cp.expires ? ` · expires ${esc(cp.expires)}` : ''}</div>
             ${cp.how ? `<div class="cp-fine">${esc(cp.how)}</div>` : ''}
-            <a class="btn sm" href="${esc(cp.url)}" target="_blank" rel="noopener noreferrer nofollow">Open &amp; print ↗</a>
+            <a class="btn sm" href="${esc(cp.url)}" target="_blank" rel="noopener noreferrer nofollow">${cp.type === 'rebate' ? 'Open rebate ↗' : cp.type === 'insert' ? 'See insert details ↗' : 'Open &amp; print ↗'}</a>
           </div>`).join('')}</div>`;
       }
-      if (c.list.length) html += `<p class="hint-sm cp-foot">These coupons were found by AI on other websites. Check the details on the coupon page before you print. Some sites need a free printer plug-in or a sign-in.</p>`;
+      if (c.list.length) html += `<p class="hint-sm cp-foot">These deals were found by AI on other websites. Check the details on each page before you use it. Some print sites need a free printer plug-in or a sign-in. Insert coupons are in that week’s Sunday paper.</p>`;
     }
     el.couponBody.innerHTML = html;
   }
