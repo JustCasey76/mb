@@ -148,8 +148,12 @@
     background: var(--card); border: 1.5px solid var(--rule); border-radius: var(--radius); box-shadow: var(--shadow);
   }
   .side { position: sticky; top: calc(16px + env(safe-area-inset-top)); display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-  @media (max-width: 900px) { .side { position: static; } }
-  .composer { padding: 18px; }
+  @media (max-width: 900px) { .side { position: static; order: 2; } .list-col { order: 1; } }
+  /* Add items lives in a pop-up so the list sits at the top of the page */
+  dialog.sheet.composer { width: min(620px, calc(100vw - 24px)); }
+  .composer-body { padding: 14px 18px calc(16px + env(safe-area-inset-bottom)); overflow: auto; }
+  .composer .preview ul { max-height: 34vh; }
+  .add-open { flex: none !important; }
 
   /* Saved lists: one button each, tap to load it into the list */
   .saved-quick { display: none; flex-direction: column; gap: 8px; }
@@ -220,9 +224,6 @@
   .btn.ghost:hover { background: color-mix(in srgb, var(--ink) 6%, transparent); }
   .btn.sm { min-height: 36px; padding: 6px 12px; font-size: 14px; }
 
-  .regulars { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--rule); display: none; }
-  .regulars.show { display: block; }
-  .regulars h3 { margin: 0 0 8px; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .chip {
     border: 1.5px solid var(--rule-2); background: var(--paper); border-radius: 999px; padding: 5px 12px 5px 10px;
@@ -491,7 +492,8 @@
     .progress-label { font-size: 12px; }
     .tools { gap: 4px; flex-wrap: nowrap; }
     .tools .btn.sm { width: 40px; padding: 0; }
-    .composer { padding: 14px; }
+    .composer-body { padding: 12px 14px calc(14px + env(safe-area-inset-bottom)); }
+    #saveListBtn { display: none; } /* phones: Save is in the More menu (Saved lists) */
     .sign .n { font-size: 42px; }
     .sign .n.range { font-size: 26px; }
     .sign .w { font-size: 14.5px; letter-spacing: 0; overflow-wrap: normal; }
@@ -558,36 +560,6 @@
 
   <main>
     <aside class="side">
-    <section class="panel composer" aria-labelledby="composerTitle">
-      <div class="label-row">
-        <h2 id="composerTitle">Add items</h2>
-        <span class="hint"><kbd>Enter</kbd> adds · <kbd>Shift</kbd>+<kbd>Enter</kbd> new line</span>
-      </div>
-      <label class="sr-only" for="paste">Type or paste your list, one item per line</label>
-      <textarea id="paste" class="paste" rows="4" spellcheck="true" autocomplete="off"
-        placeholder="Type or paste your whole list&#10;2 lbs ground beef&#10;bananas, yogurt, paper towels&#10;- ketchup"></textarea>
-
-      <div class="preview" id="preview" aria-live="polite">
-        <div class="preview-head"><span id="previewCount"></span><span id="previewMatched"></span></div>
-        <ul id="previewList"></ul>
-      </div>
-
-      <div class="composer-actions">
-        <button class="btn primary" id="addBtn" type="button" disabled>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-          <span id="addLabel">Add to list</span>
-        </button>
-        <button class="btn" id="guideBtn" type="button" title="Browse the store's Shoppers' Guide">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5M9 7h6M9 11h6"/></svg>
-          Guide
-        </button>
-      </div>
-
-      <div class="regulars" id="regulars">
-        <h3>Your regulars</h3>
-        <div class="chips" id="regularChips"></div>
-      </div>
-    </section>
 
     <nav class="saved-quick" id="savedQuick" aria-label="Saved lists">
       <div class="saved-quick-label">Saved lists</div>
@@ -611,6 +583,10 @@
           <div class="bar"><i id="progBar"></i></div>
         </div>
         <div class="tools">
+          <button class="btn sm primary add-open" id="addOpenBtn" type="button" title="Add items to your list" aria-haspopup="dialog">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            <span class="lbl">Add items</span>
+          </button>
           <button class="btn sm toggle" id="orderBtn" type="button" aria-pressed="false" title="Flip the walking order">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16M3 16l4 4 4-4M17 20V4M13 8l4-4 4 4"/></svg>
             <span class="lbl" id="orderLabel">Front → back</span>
@@ -657,6 +633,38 @@
       <div class="list-foot" id="listFoot"></div>
     </section>
   </main>
+
+  <!-- Add items -->
+  <dialog class="sheet composer" id="addSheet" aria-labelledby="composerTitle">
+    <div class="sheet-head">
+      <div>
+        <h2 id="composerTitle">Add items</h2>
+        <p><span class="hint"><kbd>Enter</kbd> adds · <kbd>Shift</kbd>+<kbd>Enter</kbd> new line</span></p>
+      </div>
+      <button class="btn sm ghost x" type="button" data-close aria-label="Close">✕</button>
+    </div>
+    <div class="composer-body">
+      <label class="sr-only" for="paste">Type or paste your list, one item per line</label>
+      <textarea id="paste" class="paste" rows="4" spellcheck="true" autocomplete="off"
+        placeholder="Type or paste your whole list&#10;2 lbs ground beef&#10;bananas, yogurt, paper towels&#10;- ketchup"></textarea>
+
+      <div class="preview" id="preview" aria-live="polite">
+        <div class="preview-head"><span id="previewCount"></span><span id="previewMatched"></span></div>
+        <ul id="previewList"></ul>
+      </div>
+
+      <div class="composer-actions">
+        <button class="btn primary" id="addBtn" type="button" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          <span id="addLabel">Add to list</span>
+        </button>
+        <button class="btn" id="guideBtn" type="button" title="Browse the store's Shoppers' Guide">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5M9 7h6M9 11h6"/></svg>
+          Guide
+        </button>
+      </div>
+    </div>
+  </dialog>
 
   <!-- Store picker -->
   <dialog class="sheet" id="storeSheet" aria-labelledby="storeTitle">

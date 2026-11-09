@@ -400,7 +400,7 @@
     listSearch: $('#listSearch'), searchInput: $('#listSearchInput'), searchMeta: $('#listSearchMeta'), searchClear: $('#listSearchClear'),
     paste: $('#paste'), preview: $('#preview'), previewList: $('#previewList'), previewCount: $('#previewCount'), previewMatched: $('#previewMatched'),
     addBtn: $('#addBtn'), addLabel: $('#addLabel'), guideBtn: $('#guideBtn'),
-    regulars: $('#regulars'), regularChips: $('#regularChips'),
+    addSheet: $('#addSheet'), addOpenBtn: $('#addOpenBtn'),
     sections: $('#sections'), foot: $('#listFoot'),
     progCount: $('#progCount'), progLabel: $('#progLabel'), progBar: $('#progBar'),
     orderBtn: $('#orderBtn'), orderLabel: $('#orderLabel'), hideBtn: $('#hideBtn'),
@@ -556,11 +556,10 @@
       el.sections.innerHTML = `
         <div class="empty">
           <div class="big">Paste. Sort. Shop.</div>
-          <p>Drop your whole list into the box — it lands here in aisle order for <b>${esc(STORES[state.storeId].name)} #${esc(STORES[state.storeId].number)}</b>, using the store's own Shoppers' Guide.</p>
-          <div class="empty-demo"><button class="btn sm" type="button" data-demo>Try a sample list</button></div>
+          <p>Tap <b>Add items</b> and type or paste your whole list — it lands here in aisle order for <b>${esc(STORES[state.storeId].name)} #${esc(STORES[state.storeId].number)}</b>, using the store's own Shoppers' Guide.</p>
+          <div class="empty-demo"><button class="btn sm primary add-open" type="button" data-open-add>Add items</button> <button class="btn sm" type="button" data-demo>Try a sample list</button></div>
         </div>`;
       el.foot.textContent = '';
-      renderRegulars();
       return;
     }
 
@@ -615,7 +614,6 @@
       : ai.estError ? `<div class="foot-total"><span>${esc(ai.estError)} Tap “+ price” on an item to enter what it costs.</span></div>` : '';
     el.foot.innerHTML = priceLine + `Aisles from the ${esc(STORES[state.storeId].name)} #${esc(STORES[state.storeId].number)} Shoppers' Guide`
       + (unknown ? ` · ${unknown.items.length} item${unknown.items.length === 1 ? '' : 's'} need an aisle` : '');
-    renderRegulars();
     scheduleEstimates();
   }
 
@@ -640,16 +638,6 @@
         <button class="aisle-btn${need ? ' need' : ''}" type="button" data-act="aisle" title="${esc(title)}" aria-label="${esc(need ? 'Set aisle for ' + it.name : 'Move ' + it.name + ' (now ' + chip + ')')}">${esc(chip)}${ICON.caret}</button>
         <button class="rm" type="button" data-act="remove" aria-label="Remove ${esc(it.name)}">${ICON.x}</button>
       </li>`;
-  }
-
-  function renderRegulars() {
-    const inList = new Set(state.items.map(i => keyOf(i.name)));
-    const top = Object.entries(state.history)
-      .filter(([k]) => !inList.has(k))
-      .sort((a, b) => (b[1].count - a[1].count) || String(b[1].last).localeCompare(String(a[1].last)))
-      .slice(0, 14);
-    el.regulars.classList.toggle('show', top.length > 0);
-    el.regularChips.innerHTML = top.map(([k, h]) => `<button class="chip" type="button" data-regular="${esc(h.name)}">${esc(h.name)}</button>`).join('');
   }
 
   // Live preview of what's in the box, in guide style ("Ketchup . . . . Aisle 3").
@@ -719,6 +707,13 @@
     el.paste.value = '';
     autoGrow();
     renderPreview();
+    el.addSheet.close(); // back to the list so you can see what landed (and the Undo toast)
+  }
+
+  function openAdd(text) {
+    if (typeof text === 'string') el.paste.value = text;
+    el.addSheet.showModal();
+    autoGrow(); renderPreview();
     el.paste.focus();
   }
 
@@ -1015,7 +1010,7 @@
     renderSync();
   }
 
-  // Saved lists as buttons under Add Items — tap one to load it into the list on the right.
+  // Saved lists as buttons beside the list — tap one to load it into the list on the right.
   const LOAD_ICON = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>';
   function renderLatest(saved = getSaved()) {
     const names = Object.keys(saved).sort((a, b) => String(saved[b].savedAt).localeCompare(String(saved[a].savedAt)));
@@ -1338,10 +1333,7 @@
       switchStore(b.dataset.pickStore);
     });
 
-    el.regularChips.addEventListener('click', e => {
-      const b = e.target.closest('[data-regular]');
-      if (b) addParsed([{ name: b.dataset.regular, qty: '' }], 'regular');
-    });
+    el.addOpenBtn.addEventListener('click', () => openAdd());
 
     el.sections.addEventListener('click', e => {
       if (e.target.closest('[data-add-search]')) {
@@ -1350,9 +1342,9 @@
         if (parsed.length) addParsed(parsed, 'search'); else render();
         return;
       }
+      if (e.target.closest('[data-open-add]')) { openAdd(); return; }
       if (e.target.closest('[data-demo]')) {
-        el.paste.value = 'Bananas\n2 lbs ground beef\nGreek yogurt\nPaper towels\nKetchup\nFrozen peas\nPeanut butter cookies\nChicken broth\nDish soap\nCoffee filters\nBagels\nShampoo';
-        autoGrow(); renderPreview(); el.paste.focus();
+        openAdd('Bananas\n2 lbs ground beef\nGreek yogurt\nPaper towels\nKetchup\nFrozen peas\nPeanut butter cookies\nChicken broth\nDish soap\nCoffee filters\nBagels\nShampoo');
         return;
       }
       const li = e.target.closest('.item');
@@ -1417,7 +1409,7 @@
     });
 
     // Sheets: close buttons + click on backdrop
-    for (const d of [el.aisleSheet, el.guideSheet, el.savedSheet, el.storeSheet, el.priceSheet, el.couponSheet]) {
+    for (const d of [el.addSheet, el.aisleSheet, el.guideSheet, el.savedSheet, el.storeSheet, el.priceSheet, el.couponSheet]) {
       d.addEventListener('click', e => {
         if (e.target.closest('[data-close]') || e.target === d) d.close();
       });
